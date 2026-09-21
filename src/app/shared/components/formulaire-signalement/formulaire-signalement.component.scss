@@ -4,7 +4,7 @@
   gap: var(--app-space-6);
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--app-space-4) var(--app-space-4) var(--app-space-8);
+  padding: var(--app-space-4) var(--app-space-4) 0;
 }
 
 // ----- Champs -----
@@ -167,7 +167,20 @@
 }
 
 .actions {
+  // Action principale toujours a portee du pouce : elle reste collee en bas
+  // du defilement au lieu d'attendre la fin du formulaire. L'utilisateur est
+  // debout, dehors, a une main ; il ne doit pas avoir a derouler cinq champs
+  // pour atteindre « Envoyer ».
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: var(--app-space-2);
+  // Marges negatives pour que la barre occupe toute la largeur malgre le
+  // padding lateral du formulaire.
+  margin: 0 calc(-1 * var(--app-space-4));
+  padding: var(--app-space-3) var(--app-space-4)
+    calc(var(--app-space-3) + var(--ion-safe-area-bottom, 0px));
+  border-top: 1px solid var(--app-color-border);
+  background: var(--app-color-surface);
 }

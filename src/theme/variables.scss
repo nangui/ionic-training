@@ -68,6 +68,10 @@
 // ----------- Couleurs : mode sombre -----------
 // Les surfaces s'inversent et les couleurs de statut sont eclaircies
 // d'environ 15 % pour conserver le contraste sur fond sombre.
+//
+// Ce bloc ne redefinit que ce que l'application pilote. Les paliers derives
+// d'Ionic viennent de dark.system.css, importe dans global.scss avant ce
+// fichier : les declarations ci-dessous le surchargent, l'inverse serait faux.
 @media (prefers-color-scheme: dark) {
   :root {
     --app-color-primary: #2da192;

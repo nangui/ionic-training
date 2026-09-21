@@ -13,6 +13,8 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
+
+import { version } from '../../../../package.json';
 import { informationCircle, moon, notifications, wifi } from 'ionicons/icons';
 
 @Component({
@@ -40,7 +42,8 @@ export class ReglagesPage {
   readonly envoiWifiSeulement = signal(false);
   readonly compressionPhoto = signal(true);
 
-  readonly version = '0.0.1';
+  /** Source unique : la version declaree dans package.json. */
+  readonly version = version;
 
   constructor() {
     addIcons({ notifications, wifi, moon, informationCircle });

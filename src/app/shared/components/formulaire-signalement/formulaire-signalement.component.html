@@ -7,17 +7,19 @@
       id="titre"
       type="text"
       formControlName="titre"
+      required
       autocomplete="off"
       enterkeyhint="next"
       placeholder="Nid-de-poule rue Victor Hugo"
       [class.champ__saisie--erreur]="enErreur('titre')"
       [attr.aria-invalid]="enErreur('titre')"
-      [attr.aria-describedby]="enErreur('titre') ? 'titre-erreur' : 'titre-aide'"
+      [attr.aria-describedby]="enErreur('titre') ? 'titre-aide titre-erreur' : 'titre-aide'"
     />
+    <!-- L'aide reste visible sous l'erreur : elle est la consigne, elle ne
+         doit pas disparaitre au moment ou l'utilisateur en a le plus besoin. -->
+    <p class="champ__aide" id="titre-aide">Une ligne suffit : le lieu et la nature du problème.</p>
     @if (enErreur('titre')) {
       <p class="champ__erreur" id="titre-erreur" role="alert">{{ messageErreur('titre') }}</p>
-    } @else {
-      <p class="champ__aide" id="titre-aide">Une ligne suffit : le lieu et la nature du problème.</p>
     }
   </div>
 
@@ -39,18 +41,20 @@
       id="description"
       rows="4"
       formControlName="description"
+      required
       placeholder="Ce que vous constatez, depuis quand, et ce que ça empêche."
       [class.champ__saisie--erreur]="enErreur('description')"
       [attr.aria-invalid]="enErreur('description')"
-      [attr.aria-describedby]="enErreur('description') ? 'description-erreur' : 'description-aide'"
+      [attr.aria-describedby]="
+        enErreur('description') ? 'description-aide description-erreur' : 'description-aide'
+      "
     ></textarea>
+    <p class="champ__aide" id="description-aide">
+      Plus c'est précis, plus l'intervention est rapide.
+    </p>
     @if (enErreur('description')) {
       <p class="champ__erreur" id="description-erreur" role="alert">
         {{ messageErreur('description') }}
-      </p>
-    } @else {
-      <p class="champ__aide" id="description-aide">
-        Plus c'est précis, plus l'intervention est rapide.
       </p>
     }
   </div>

@@ -1,7 +1,7 @@
 import { Component, EnvironmentInjector, inject } from '@angular/core';
 import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { list, addCircle, settings } from 'ionicons/icons';
+import { addCircleOutline, listOutline, settingsOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-tabs',
@@ -13,6 +13,8 @@ export class TabsPage {
   public environmentInjector = inject(EnvironmentInjector);
 
   constructor() {
-    addIcons({ list, addCircle, settings });
+    // Un seul jeu, tout en traits : un disque plein se lisait comme un
+    // bouton desactive a cote des deux autres glyphes.
+    addIcons({ listOutline, addCircleOutline, settingsOutline });
   }
 }
