@@ -3,23 +3,20 @@
     <ion-title>Signalements</ion-title>
 
     <ion-buttons slot="end">
-      <!-- Le libellé visible porte le sens ; pas d'aria-label qui viendrait
-           le remplacer et casser la commande vocale (WCAG 2.5.3). -->
-      <ion-button
-        class="action-secondaire"
-        fill="clear"
-        (click)="basculerFiltre()"
-        [attr.aria-pressed]="masquerResolus()"
-      >
-        <ion-icon
-          slot="start"
-          aria-hidden="true"
-          [name]="masquerResolus() ? 'funnel' : 'funnel-outline'"
-        ></ion-icon>
-        {{ masquerResolus() ? 'À traiter' : 'Tout' }}
-      </ion-button>
+      <!-- Action secondaire utile plutôt que permanente : elle n'apparaît
+           que lorsqu'il y a réellement quelque chose à réinitialiser. -->
+      @if (filtresActifs()) {
+        <ion-button class="action-secondaire" fill="clear" (click)="reinitialiserFiltres()">
+          Effacer
+        </ion-button>
+      }
     </ion-buttons>
   </ion-toolbar>
+
+  <!-- Ordre de lecture : en-tête, bannière hors-ligne, filtres, liste, FAB. -->
+  @if (!enLigne()) {
+    <app-banniere-hors-ligne />
+  }
 </ion-header>
 
 <ion-content [scrollEvents]="true" (ionScroll)="surDefilement($any($event))">
@@ -40,15 +37,47 @@
     horizontal="end"
     [class.fab-principal--masque]="!fabVisible()"
   >
-    <ion-fab-button aria-label="Créer un signalement" (click)="ouvrirCreation()">
-      <ion-icon name="add" aria-hidden="true"></ion-icon>
+    <ion-fab-button
+      [disabled]="!enLigne()"
+      [attr.aria-label]="
+        enLigne()
+          ? 'Créer un signalement'
+          : 'Création indisponible : appareil hors ligne'
+      "
+      (click)="ouvrirCreation()"
+    >
+      <ion-icon [name]="enLigne() ? 'add' : 'cloud-offline'" aria-hidden="true"></ion-icon>
     </ion-fab-button>
   </ion-fab>
 
   <div class="contenu">
     <h1 class="titre-page">Liste des signalements</h1>
 
-    @if (signalementsAffiches().length > 0) {
+    <div class="outils">
+      <app-barre-recherche (recherche)="surRecherche($event)" />
+      <app-filtres-signalements
+        [categories]="categoriesFiltrees()"
+        [statuts]="statutsFiltres()"
+        (categorieBasculee)="basculerCategorie($event)"
+        (statutBascule)="basculerStatut($event)"
+      />
+    </div>
+
+    @if (chargement()) {
+      <!-- Silhouettes plutôt qu'une roue centrale : elles occupent la place
+           que les cartes vont prendre, la liste ne sursaute pas à l'arrivée. -->
+      <div class="liste" aria-busy="true" aria-live="polite">
+        @for (squelette of squelettes; track $index) {
+          <app-carte-squelette />
+        }
+      </div>
+      @if (connexionLente()) {
+        <div class="lenteur" role="status">
+          <p class="lenteur__texte">La connexion semble lente.</p>
+          <button class="bouton-contour" type="button" (click)="charger()">Réessayer</button>
+        </div>
+      }
+    } @else if (signalementsAffiches().length > 0) {
       <ul class="liste">
         @for (signalement of signalementsAffiches(); track signalement.id) {
           <li>
@@ -65,18 +94,18 @@
       <div class="vide">
         <ion-icon class="vide__icone" name="checkmark-circle" aria-hidden="true"></ion-icon>
         <h2 class="vide__titre">
-          {{ masquerResolus() ? 'Rien à traiter' : 'Aucun signalement pour le moment' }}
+          {{ filtresActifs() ? 'Aucun résultat' : 'Aucun signalement pour le moment' }}
         </h2>
         <p class="vide__texte">
           {{
-            masquerResolus()
-              ? 'Tous les signalements sont résolus.'
+            filtresActifs()
+              ? 'Aucun signalement ne correspond à votre recherche ou à vos filtres.'
               : 'Signalez un problème avec le bouton + en bas à droite.'
           }}
         </p>
-        @if (masquerResolus()) {
-          <button class="vide__action" type="button" (click)="reinitialiserFiltre()">
-            Réinitialiser le filtre
+        @if (filtresActifs()) {
+          <button class="bouton-contour" type="button" (click)="reinitialiserFiltres()">
+            Réinitialiser les filtres
           </button>
         }
       </div>

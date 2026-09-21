@@ -10,17 +10,17 @@ describe('SignalementService', () => {
   });
 
   it('renvoie les trois signalements de demonstration', () => {
-    expect(service.lister().length).toBe(3);
+    expect(service.listerSynchrone().length).toBe(3);
   });
 
   it('trie du plus recent au plus ancien', () => {
-    const dates = service.lister().map((s) => s.dateCreation);
+    const dates = service.listerSynchrone().map((s) => s.dateCreation);
     expect([...dates].sort((a, b) => b.localeCompare(a))).toEqual(dates);
   });
 
   it('renvoie des copies, la source reste intacte', () => {
-    const premier = service.lister()[0];
+    const premier = service.listerSynchrone()[0];
     premier.titre = 'titre modifie';
-    expect(service.lister()[0].titre).not.toBe('titre modifie');
+    expect(service.listerSynchrone()[0].titre).not.toBe('titre modifie');
   });
 });

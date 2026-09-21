@@ -56,6 +56,28 @@ ion-content {
   overflow: hidden;
 }
 
+.outils {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  margin-bottom: var(--app-space-4);
+}
+
+.lenteur {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding: var(--app-space-6) var(--app-space-4) 0;
+  text-align: center;
+}
+
+.lenteur__texte {
+  margin: 0;
+  color: var(--app-color-text-muted);
+  font-size: var(--app-font-body);
+}
+
 .liste {
   display: grid;
   gap: var(--app-space-3);
@@ -98,9 +120,8 @@ ion-content {
   line-height: 1.5;
 }
 
-.vide__action {
+.bouton-contour {
   min-height: var(--app-touch-min);
-  margin-top: var(--app-space-4);
   padding: 0 var(--app-space-4);
   border: 1px solid var(--app-color-border);
   border-radius: var(--app-radius-input);
@@ -110,6 +131,10 @@ ion-content {
   font-size: var(--app-font-body);
   font-weight: 600;
   cursor: pointer;
+}
+
+.vide .bouton-contour {
+  margin-top: var(--app-space-4);
 }
 
 // ----- Action principale -----

@@ -1,0 +1,68 @@
+.barre {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  // Hauteur de saisie confortable a une main.
+  min-height: var(--app-touch-min);
+  padding-inline: var(--app-space-3);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-surface);
+}
+
+.barre:focus-within {
+  border-color: var(--app-color-primary);
+}
+
+.barre__loupe {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--app-color-text-muted);
+}
+
+.barre__champ {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--app-touch-min);
+  border: 0;
+  background: none;
+  color: var(--app-color-text);
+  // 16px : en dessous, iOS zoome a la mise au point.
+  font-size: var(--app-font-body);
+  font-family: inherit;
+}
+
+.barre__champ:focus {
+  outline: none;
+}
+
+.barre__champ::placeholder {
+  color: var(--app-color-text-muted);
+}
+
+// Supprime la croix native de Safari/Chrome : on fournit la notre, a la
+// bonne taille tactile.
+.barre__champ::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.barre__effacer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  // 48x48 comme tout le reste : l'effacement est une cible a part entiere.
+  width: var(--app-touch-min);
+  height: var(--app-touch-min);
+  margin-inline-end: calc(-1 * var(--app-space-2));
+  border: 0;
+  background: none;
+  color: var(--app-color-text-muted);
+  cursor: pointer;
+}
+
+.barre__effacer ion-icon {
+  width: 20px;
+  height: 20px;
+}

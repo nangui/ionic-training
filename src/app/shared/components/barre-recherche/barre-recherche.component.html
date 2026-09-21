@@ -1,0 +1,22 @@
+<div class="barre">
+  <ion-icon class="barre__loupe" name="search" aria-hidden="true"></ion-icon>
+
+  <input
+    class="barre__champ"
+    id="recherche"
+    type="search"
+    inputmode="search"
+    enterkeyhint="search"
+    autocomplete="off"
+    placeholder="Rechercher un signalement"
+    aria-label="Rechercher un signalement"
+    [value]="saisie()"
+    (input)="surSaisie($event)"
+  />
+
+  @if (saisie()) {
+    <button class="barre__effacer" type="button" aria-label="Effacer la recherche" (click)="effacer()">
+      <ion-icon name="close-circle" aria-hidden="true"></ion-icon>
+    </button>
+  }
+</div>

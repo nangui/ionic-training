@@ -17,10 +17,19 @@ import {
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, checkmarkCircle, funnel, funnelOutline } from 'ionicons/icons';
+import { add, checkmarkCircle, cloudOffline } from 'ionicons/icons';
 
-import { Signalement } from '../../core/models/signalement.model';
+import {
+  CategorieSignalement,
+  Signalement,
+  StatutSignalement,
+} from '../../core/models/signalement.model';
+import { ReseauService } from '../../core/services/reseau.service';
 import { SignalementService } from '../../core/services/signalement.service';
+import { BanniereHorsLigneComponent } from '../../shared/components/banniere-hors-ligne/banniere-hors-ligne.component';
+import { BarreRechercheComponent } from '../../shared/components/barre-recherche/barre-recherche.component';
+import { CarteSqueletteComponent } from '../../shared/components/carte-squelette/carte-squelette.component';
+import { FiltresSignalementsComponent } from '../../shared/components/filtres-signalements/filtres-signalements.component';
 import {
   BrouillonSignalement,
   FormulaireSignalementComponent,
@@ -29,6 +38,20 @@ import { SignalementCardComponent } from '../../shared/components/signalement-ca
 
 /** Amplitude de defilement au-dela de laquelle le bouton flottant s'efface. */
 const SEUIL_DEFILEMENT = 24;
+
+/** Nombre de silhouettes affichees pendant le chargement initial. */
+export const NOMBRE_SQUELETTES = 3;
+
+/** Duree au-dela de laquelle on previent que la connexion semble lente. */
+const SEUIL_CONNEXION_LENTE_MS = 10_000;
+
+/** Retire les accents pour une recherche tolerante a la saisie. */
+function normaliser(texte: string): string {
+  return texte
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
 
 @Component({
   selector: 'app-signalements',
@@ -50,41 +73,95 @@ const SEUIL_DEFILEMENT = 24;
     IonModal,
     SignalementCardComponent,
     FormulaireSignalementComponent,
+    BarreRechercheComponent,
+    FiltresSignalementsComponent,
+    BanniereHorsLigneComponent,
+    CarteSqueletteComponent,
   ],
 })
 export class SignalementsPage {
   private readonly signalementService = inject(SignalementService);
+  private readonly reseauService = inject(ReseauService);
   private readonly toastController = inject(ToastController);
 
   /** Etat de la liste. */
   readonly signalements = signal<Signalement[]>([]);
 
-  /** Filtre de l'action secondaire : masquer ou non les signalements resolus. */
-  readonly masquerResolus = signal(false);
+  readonly chargement = signal(true);
+  readonly connexionLente = signal(false);
+
+  readonly enLigne = this.reseauService.enLigne;
+
+  readonly recherche = signal('');
+  readonly categoriesFiltrees = signal<readonly CategorieSignalement[]>([]);
+  readonly statutsFiltres = signal<readonly StatutSignalement[]>([]);
 
   /** Le bouton flottant s'efface quand on descend, revient quand on remonte. */
   readonly fabVisible = signal(true);
 
   readonly modalOuvert = signal(false);
 
-  private dernierDefilement = 0;
+  readonly squelettes = Array.from({ length: NOMBRE_SQUELETTES });
 
-  /** Ce que la vue affiche reellement, derive de l'etat et du filtre. */
+  private dernierDefilement = 0;
+  private minuteurLenteur?: ReturnType<typeof setTimeout>;
+
+  /** Vrai des qu'une recherche ou un filtre restreint la liste. */
+  readonly filtresActifs = computed(
+    () =>
+      this.recherche().length > 0 ||
+      this.categoriesFiltrees().length > 0 ||
+      this.statutsFiltres().length > 0,
+  );
+
+  /**
+   * Ce que la vue affiche reellement.
+   *
+   * Une famille de filtres vide signifie « toutes » : sans ca, il faudrait
+   * cocher les cinq categories pour revoir la liste entiere.
+   */
   readonly signalementsAffiches = computed(() => {
-    const tous = this.signalements();
-    return this.masquerResolus()
-      ? tous.filter((signalement) => signalement.statut !== 'resolu')
-      : tous;
+    const terme = normaliser(this.recherche());
+    const categories = this.categoriesFiltrees();
+    const statuts = this.statutsFiltres();
+
+    return this.signalements().filter((signalement) => {
+      const correspondCategorie =
+        categories.length === 0 || categories.includes(signalement.categorie);
+      const correspondStatut =
+        statuts.length === 0 || statuts.includes(signalement.statut);
+      const correspondTerme =
+        terme.length === 0 ||
+        normaliser(signalement.titre).includes(terme) ||
+        normaliser(signalement.description).includes(terme);
+
+      return correspondCategorie && correspondStatut && correspondTerme;
+    });
   });
 
   constructor() {
-    addIcons({ add, checkmarkCircle, funnel, funnelOutline });
-    this.charger();
+    addIcons({ add, checkmarkCircle, cloudOffline });
+    void this.charger();
   }
 
   /** Recharge la liste depuis le service. */
-  charger(): void {
-    this.signalements.set(this.signalementService.lister());
+  async charger(): Promise<void> {
+    this.chargement.set(true);
+    this.connexionLente.set(false);
+    // Au-dela de dix secondes on le dit, plutot que de laisser tourner les
+    // silhouettes sans explication.
+    this.minuteurLenteur = setTimeout(
+      () => this.connexionLente.set(true),
+      SEUIL_CONNEXION_LENTE_MS,
+    );
+
+    try {
+      this.signalements.set(await this.signalementService.lister());
+    } finally {
+      clearTimeout(this.minuteurLenteur);
+      this.connexionLente.set(false);
+      this.chargement.set(false);
+    }
   }
 
   /** Cible de navigation vers le detail d'un signalement. */
@@ -93,8 +170,8 @@ export class SignalementsPage {
   }
 
   /** Tire-pour-actualiser : recharge puis rend la main au refresher. */
-  rafraichir(evenement: RefresherCustomEvent): void {
-    this.charger();
+  async rafraichir(evenement: RefresherCustomEvent): Promise<void> {
+    await this.charger();
     evenement.detail.complete();
   }
 
@@ -107,12 +184,30 @@ export class SignalementsPage {
     }
   }
 
-  basculerFiltre(): void {
-    this.masquerResolus.update((actif) => !actif);
+  surRecherche(terme: string): void {
+    this.recherche.set(terme);
   }
 
-  reinitialiserFiltre(): void {
-    this.masquerResolus.set(false);
+  basculerCategorie(categorie: CategorieSignalement): void {
+    this.categoriesFiltrees.update((actuelles) =>
+      actuelles.includes(categorie)
+        ? actuelles.filter((c) => c !== categorie)
+        : [...actuelles, categorie],
+    );
+  }
+
+  basculerStatut(statut: StatutSignalement): void {
+    this.statutsFiltres.update((actuels) =>
+      actuels.includes(statut)
+        ? actuels.filter((s) => s !== statut)
+        : [...actuels, statut],
+    );
+  }
+
+  reinitialiserFiltres(): void {
+    this.recherche.set('');
+    this.categoriesFiltrees.set([]);
+    this.statutsFiltres.set([]);
   }
 
   ouvrirCreation(): void {
