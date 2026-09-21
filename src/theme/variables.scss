@@ -1,2 +1,84 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+// Design tokens de l'application.
+// Palette claire unique, pensee pour une lecture en plein soleil : pas de
+// variante sombre, la palette sombre systeme d'Ionic est desactivee dans
+// global.scss. Tous les couples texte/fond ci-dessous sont >= 4.5:1 (WCAG AA).
+
+:root {
+  // ----- Couleurs de marque -----
+  --app-color-primary: #0f766e;
+  --app-color-primary-contrast: #ffffff;
+
+  // ----- Surfaces et texte -----
+  --app-color-surface: #ffffff;
+  --app-color-background: #f5f5f1;
+  --app-color-text: #15201c;
+  --app-color-text-muted: #5b6b66;
+  --app-color-border: #e1e4e0;
+
+  // ----- Couleurs semantiques -----
+  --app-color-danger: #c2261b;
+  --app-color-warning: #b45309;
+  --app-color-success: #15803d;
+
+  // ----- Statuts d'un signalement -----
+  --app-color-status-nouveau: #1d4ed8;
+  --app-color-status-encours: #b45309;
+  --app-color-status-resolu: #15803d;
+
+  // ----- Espacements : echelle 4pt -----
+  --app-space-1: 4px;
+  --app-space-2: 8px;
+  --app-space-3: 12px;
+  --app-space-4: 16px;
+  --app-space-5: 20px;
+  --app-space-6: 24px;
+  --app-space-8: 32px;
+
+  // ----- Formes et cibles tactiles -----
+  --app-radius: 12px;
+  --app-radius-pill: 999px;
+  --app-touch-min: 48px; // >= 44pt iOS / 48dp Android
+  --app-shadow-card: 0 1px 2px rgba(21, 32, 28, 0.06), 0 2px 8px rgba(21, 32, 28, 0.05);
+
+  // ----- Correspondance avec les variables Ionic -----
+  --ion-background-color: var(--app-color-background);
+  --ion-background-color-rgb: 245, 245, 241;
+  --ion-text-color: var(--app-color-text);
+  --ion-text-color-rgb: 21, 32, 28;
+  --ion-border-color: var(--app-color-border);
+  --ion-item-background: var(--app-color-surface);
+  --ion-card-background: var(--app-color-surface);
+  --ion-toolbar-background: var(--app-color-surface);
+  --ion-toolbar-color: var(--app-color-text);
+  --ion-tab-bar-background: var(--app-color-surface);
+  --ion-tab-bar-color: var(--app-color-text-muted);
+  --ion-tab-bar-color-selected: var(--app-color-primary);
+
+  --ion-color-primary: #0f766e;
+  --ion-color-primary-rgb: 15, 118, 110;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #0d6861;
+  --ion-color-primary-tint: #27847c;
+
+  --ion-color-danger: #c2261b;
+  --ion-color-danger-rgb: 194, 38, 27;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #ab2118;
+  --ion-color-danger-tint: #c83c32;
+
+  --ion-color-warning: #b45309;
+  --ion-color-warning-rgb: 180, 83, 9;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #9e4908;
+  --ion-color-warning-tint: #bc6721;
+
+  --ion-color-success: #15803d;
+  --ion-color-success-rgb: 21, 128, 61;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #127136;
+  --ion-color-success-tint: #2d8d51;
+}

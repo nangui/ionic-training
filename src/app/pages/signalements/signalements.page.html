@@ -1,17 +1,86 @@
-<ion-header [translucent]="true">
+<ion-header class="en-tete">
   <ion-toolbar>
-    <ion-title>
-      Signalements
-    </ion-title>
+    <ion-title>Signalements</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button
+        class="action-secondaire"
+        fill="clear"
+        (click)="basculerFiltre()"
+        [attr.aria-pressed]="masquerResolus()"
+        [attr.aria-label]="
+          masquerResolus()
+            ? 'Filtre actif : seuls les signalements à traiter sont affichés. Toucher pour afficher tout.'
+            : 'Tous les signalements sont affichés. Toucher pour masquer les signalements résolus.'
+        "
+      >
+        <ion-icon
+          slot="start"
+          aria-hidden="true"
+          [name]="masquerResolus() ? 'funnel' : 'funnel-outline'"
+        ></ion-icon>
+        {{ masquerResolus() ? 'À traiter' : 'Tout' }}
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Signalements</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <ion-refresher slot="fixed" (ionRefresh)="rafraichir($any($event))">
+    <ion-refresher-content
+      pullingText="Tirer pour actualiser"
+      refreshingSpinner="crescent"
+      refreshingText="Actualisation…"
+    ></ion-refresher-content>
+  </ion-refresher>
 
-  <app-explore-container name="Signalements"></app-explore-container>
+  <ul class="liste">
+    @for (signalement of signalementsAffiches(); track signalement.id) {
+      <li class="carte">
+        <p class="carte__meta">
+          <span class="badge" [class]="classeStatut(signalement.statut)">
+            {{ libellesStatut[signalement.statut] }}
+          </span>
+          <span class="carte__categorie">
+            {{ libellesCategorie[signalement.categorie] }}
+          </span>
+        </p>
+
+        <h2 class="carte__titre">{{ signalement.titre }}</h2>
+        <p class="carte__description">{{ signalement.description }}</p>
+
+        <p class="carte__pied">
+          <time [attr.datetime]="signalement.dateCreation">
+            {{ formaterDate(signalement.dateCreation) }}
+          </time>
+          <span aria-hidden="true">•</span>
+          <span>{{ formaterCoordonnees(signalement) }}</span>
+        </p>
+      </li>
+    } @empty {
+      <li class="vide">
+        <ion-icon
+          class="vide__icone"
+          name="checkmark-circle"
+          aria-hidden="true"
+        ></ion-icon>
+        <h2 class="vide__titre">
+          {{ masquerResolus() ? 'Rien à traiter' : 'Aucun signalement' }}
+        </h2>
+        <p class="vide__texte">
+          {{
+            masquerResolus()
+              ? 'Tous les signalements sont résolus. Retirez le filtre pour les revoir.'
+              : 'Signalez un problème avec le bouton + en bas à droite.'
+          }}
+        </p>
+      </li>
+    }
+  </ul>
 </ion-content>
+
+<ion-fab class="fab-principal" slot="fixed" vertical="bottom" horizontal="end">
+  <ion-fab-button routerLink="/tabs/nouveau" aria-label="Créer un signalement">
+    <ion-icon name="add" aria-hidden="true"></ion-icon>
+  </ion-fab-button>
+</ion-fab>
