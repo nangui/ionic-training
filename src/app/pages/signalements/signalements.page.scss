@@ -3,25 +3,24 @@
 // D'ou des contrastes eleves, des cibles tactiles >= 48px et l'action
 // principale en bas d'ecran, a portee du pouce.
 
-.en-tete {
+.en-tete ion-toolbar {
   // Pas de translucidite : le flou delave le titre en pleine lumiere.
-  ion-toolbar {
-    --background: var(--app-color-surface);
-    --color: var(--app-color-text);
-    --border-width: 0 0 1px 0;
-    --border-color: var(--app-color-border);
-    --padding-start: var(--app-space-4);
-    --padding-end: var(--app-space-2);
-    --min-height: 56px;
-  }
+  --background: var(--app-color-surface);
+  --color: var(--app-color-text);
+  --border-width: 0 0 1px 0;
+  --border-color: var(--app-color-border);
+  --padding-start: var(--app-space-4);
+  --padding-end: var(--app-space-2);
+  --min-height: 56px;
+}
 
-  ion-title {
-    // Titre a gauche sur les deux plateformes (iOS le centre par defaut).
-    padding-inline: 0;
-    text-align: start;
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
+.en-tete ion-title {
+  // Titre a gauche sur les deux plateformes (iOS le centre par defaut) et
+  // decolle du bord de l'ecran de space-4.
+  padding-inline: 0;
+  text-align: start;
+  font-size: var(--app-font-title);
+  font-weight: var(--app-font-title-weight);
 }
 
 .action-secondaire {
@@ -29,7 +28,7 @@
   --padding-start: var(--app-space-3);
   --padding-end: var(--app-space-3);
   min-height: var(--app-touch-min);
-  font-size: 0.9375rem;
+  font-size: var(--app-font-body);
   font-weight: 600;
 }
 
@@ -37,96 +36,39 @@ ion-content {
   --background: var(--app-color-background);
 }
 
-.liste {
-  display: flex;
-  flex-direction: column;
-  gap: var(--app-space-3);
-  margin: 0;
+.contenu {
+  max-width: 720px;
+  margin: 0 auto;
   // Marge laterale de space-4, et assez d'air en bas pour que le bouton
   // flottant ne recouvre jamais la derniere carte.
   padding: var(--app-space-4) var(--app-space-4)
     calc(var(--app-space-8) + 56px + var(--app-space-4));
-  list-style: none;
 }
 
-.carte {
-  padding: var(--app-space-4);
-  border: 1px solid var(--app-color-border);
-  border-radius: var(--app-radius);
-  background: var(--app-color-surface);
-  // La carte blanche sur le fond creme ne tient qu'a 1,1:1 : la bordure et
-  // cette ombre tres douce sont ce qui la detache reellement au soleil.
-  box-shadow: var(--app-shadow-card);
-}
-
-.carte__meta {
-  display: flex;
-  align-items: center;
-  gap: var(--app-space-2);
-  margin: 0 0 var(--app-space-2);
-}
-
-.carte__categorie {
-  color: var(--app-color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.carte__titre {
-  margin: 0 0 var(--app-space-1);
-  color: var(--app-color-text);
-  font-size: 1.0625rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.carte__description {
-  margin: 0 0 var(--app-space-3);
-  color: var(--app-color-text-muted);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  // Deux lignes suffisent en mobilite ; le detail viendra sur l'ecran dedie.
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+// Titre de niveau 1 de l'ecran : la hierarchie des titres part de h1, meme
+// si l'intitule visible est porte par la barre de navigation.
+.titre-page {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  clip-path: inset(50%);
   overflow: hidden;
 }
 
-.carte__pied {
-  display: flex;
-  align-items: center;
-  gap: var(--app-space-2);
+.liste {
+  display: grid;
+  gap: var(--app-space-3);
   margin: 0;
-  color: var(--app-color-text-muted);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
+  padding: 0;
+  list-style: none;
 }
 
-// ----- Badge de statut -----
-// Le libelle est toujours ecrit en toutes lettres : la couleur seule ne
-// doit jamais porter l'information (daltonisme, forte luminosite).
-.badge {
-  padding: var(--app-space-1) var(--app-space-3);
-  border-radius: var(--app-radius-pill);
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.badge--nouveau {
-  background: var(--app-color-status-nouveau);
-}
-
-.badge--encours {
-  background: var(--app-color-status-encours);
-}
-
-.badge--resolu {
-  background: var(--app-color-status-resolu);
+// Tablette : deux colonnes de cartes.
+@media (min-width: 768px) {
+  .liste {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 // ----- Etat vide -----
@@ -144,29 +86,59 @@ ion-content {
 .vide__titre {
   margin: var(--app-space-4) 0 var(--app-space-2);
   color: var(--app-color-text);
-  font-size: 1.0625rem;
-  font-weight: 700;
+  font-size: var(--app-font-card-title);
+  font-weight: var(--app-font-card-title-weight);
 }
 
 .vide__texte {
   margin: 0 auto;
   max-width: 34ch;
   color: var(--app-color-text-muted);
-  font-size: 0.9375rem;
+  font-size: var(--app-font-body);
   line-height: 1.5;
+}
+
+.vide__action {
+  min-height: var(--app-touch-min);
+  margin-top: var(--app-space-4);
+  padding: 0 var(--app-space-4);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-surface);
+  color: var(--app-color-primary);
+  font-family: inherit;
+  font-size: var(--app-font-body);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 // ----- Action principale -----
 .fab-principal {
-  // A space-4 des deux bords, dans la zone atteignable au pouce.
-  inset-inline-end: var(--app-space-4);
-  bottom: var(--app-space-4);
+  // A space-4 des deux bords, en gardant la zone de securite : sans elle le
+  // bouton passe sous l'encoche ou la barre gestuelle en paysage.
+  inset-inline-end: calc(var(--app-space-4) + var(--ion-safe-area-right, 0px));
+  bottom: calc(var(--app-space-4) + var(--ion-safe-area-bottom, 0px));
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
 
-  ion-fab-button {
-    --background: var(--app-color-primary);
-    --background-activated: var(--app-color-primary);
-    --color: var(--app-color-primary-contrast);
-    --box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35);
-    --size: 60px; // au-dela du minimum de 48px : cible visee d'une main
+.fab-principal--masque {
+  opacity: 0;
+  transform: translateY(72px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab-principal--masque {
+    transform: none;
   }
+}
+
+.fab-principal ion-fab-button {
+  --background: var(--app-color-primary);
+  --background-activated: var(--app-color-primary);
+  --color: var(--app-color-primary-contrast);
+  --box-shadow: var(--app-shadow);
+  --size: 60px; // au-dela du minimum de 48px : cible visee d'une main
 }

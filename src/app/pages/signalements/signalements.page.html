@@ -3,16 +3,13 @@
     <ion-title>Signalements</ion-title>
 
     <ion-buttons slot="end">
+      <!-- Le libellé visible porte le sens ; pas d'aria-label qui viendrait
+           le remplacer et casser la commande vocale (WCAG 2.5.3). -->
       <ion-button
         class="action-secondaire"
         fill="clear"
         (click)="basculerFiltre()"
         [attr.aria-pressed]="masquerResolus()"
-        [attr.aria-label]="
-          masquerResolus()
-            ? 'Filtre actif : seuls les signalements à traiter sont affichés. Toucher pour afficher tout.'
-            : 'Tous les signalements sont affichés. Toucher pour masquer les signalements résolus.'
-        "
       >
         <ion-icon
           slot="start"
@@ -25,7 +22,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [scrollEvents]="true" (ionScroll)="surDefilement($any($event))">
   <ion-refresher slot="fixed" (ionRefresh)="rafraichir($any($event))">
     <ion-refresher-content
       pullingText="Tirer pour actualiser"
@@ -34,53 +31,77 @@
     ></ion-refresher-content>
   </ion-refresher>
 
-  <ul class="liste">
-    @for (signalement of signalementsAffiches(); track signalement.id) {
-      <li class="carte">
-        <p class="carte__meta">
-          <span class="badge" [class]="classeStatut(signalement.statut)">
-            {{ libellesStatut[signalement.statut] }}
-          </span>
-          <span class="carte__categorie">
-            {{ libellesCategorie[signalement.categorie] }}
-          </span>
-        </p>
+  <!-- Le bouton flottant est dans ion-content : c'est la seule position où
+       son slot "fixed" est pris en compte par Ionic. -->
+  <ion-fab
+    class="fab-principal"
+    slot="fixed"
+    vertical="bottom"
+    horizontal="end"
+    [class.fab-principal--masque]="!fabVisible()"
+  >
+    <ion-fab-button aria-label="Créer un signalement" (click)="ouvrirCreation()">
+      <ion-icon name="add" aria-hidden="true"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
-        <h2 class="carte__titre">{{ signalement.titre }}</h2>
-        <p class="carte__description">{{ signalement.description }}</p>
+  <div class="contenu">
+    <h1 class="titre-page">Liste des signalements</h1>
 
-        <p class="carte__pied">
-          <time [attr.datetime]="signalement.dateCreation">
-            {{ formaterDate(signalement.dateCreation) }}
-          </time>
-          <span aria-hidden="true">•</span>
-          <span>{{ formaterCoordonnees(signalement) }}</span>
-        </p>
-      </li>
-    } @empty {
-      <li class="vide">
-        <ion-icon
-          class="vide__icone"
-          name="checkmark-circle"
-          aria-hidden="true"
-        ></ion-icon>
+    @if (signalementsAffiches().length > 0) {
+      <ul class="liste">
+        @for (signalement of signalementsAffiches(); track signalement.id) {
+          <li>
+            <app-signalement-card
+              [signalement]="signalement"
+              [lien]="lienDetail(signalement)"
+            />
+          </li>
+        }
+      </ul>
+    } @else {
+      <!-- L'état vide est hors de la liste : un lecteur d'écran n'annoncerait
+           pas « liste, 1 élément » là où il n'y a aucun signalement. -->
+      <div class="vide">
+        <ion-icon class="vide__icone" name="checkmark-circle" aria-hidden="true"></ion-icon>
         <h2 class="vide__titre">
-          {{ masquerResolus() ? 'Rien à traiter' : 'Aucun signalement' }}
+          {{ masquerResolus() ? 'Rien à traiter' : 'Aucun signalement pour le moment' }}
         </h2>
         <p class="vide__texte">
           {{
             masquerResolus()
-              ? 'Tous les signalements sont résolus. Retirez le filtre pour les revoir.'
+              ? 'Tous les signalements sont résolus.'
               : 'Signalez un problème avec le bouton + en bas à droite.'
           }}
         </p>
-      </li>
+        @if (masquerResolus()) {
+          <button class="vide__action" type="button" (click)="reinitialiserFiltre()">
+            Réinitialiser le filtre
+          </button>
+        }
+      </div>
     }
-  </ul>
+  </div>
 </ion-content>
 
-<ion-fab class="fab-principal" slot="fixed" vertical="bottom" horizontal="end">
-  <ion-fab-button routerLink="/tabs/nouveau" aria-label="Créer un signalement">
-    <ion-icon name="add" aria-hidden="true"></ion-icon>
-  </ion-fab-button>
-</ion-fab>
+<ion-modal [isOpen]="modalOuvert()" (ionModalDidDismiss)="fermerCreation()">
+  <ng-template>
+    <ion-header class="en-tete">
+      <ion-toolbar>
+        <ion-title>Nouveau signalement</ion-title>
+        <ion-buttons slot="end">
+          <ion-button class="action-secondaire" fill="clear" (click)="fermerCreation()">
+            Fermer
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <app-formulaire-signalement
+        (envoye)="enregistrer($event)"
+        (annule)="fermerCreation()"
+      />
+    </ion-content>
+  </ng-template>
+</ion-modal>

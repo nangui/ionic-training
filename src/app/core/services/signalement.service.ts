@@ -54,8 +54,16 @@ const SIGNALEMENTS_DEMO: readonly Signalement[] = [
 export class SignalementService {
   /** Tous les signalements, du plus recent au plus ancien. */
   lister(): Signalement[] {
+    // Tri lexicographique direct : les dates sont des ISO 8601, donc leur
+    // ordre alphabetique est leur ordre chronologique.
     return SIGNALEMENTS_DEMO.map((signalement) => ({ ...signalement })).sort(
-      (a, b) => b.dateCreation.localeCompare(a.dateCreation),
+      (a, b) => (a.dateCreation < b.dateCreation ? 1 : -1),
     );
+  }
+
+  /** Un signalement par son identifiant, ou `undefined` s'il n'existe pas. */
+  trouver(id: string): Signalement | undefined {
+    const trouve = SIGNALEMENTS_DEMO.find((signalement) => signalement.id === id);
+    return trouve ? { ...trouve } : undefined;
   }
 }

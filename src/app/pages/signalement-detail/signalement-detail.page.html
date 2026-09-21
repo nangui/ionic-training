@@ -1,0 +1,65 @@
+<ion-header class="en-tete">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/signalements" text="Retour"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Détail</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (signalement(); as signalement) {
+    <article class="detail">
+      <!-- Le titre complet est toujours visible ici, jamais tronqué. -->
+      <h1 class="detail__titre">{{ signalement.titre }}</h1>
+
+      <p class="detail__meta">
+        <app-statut-chip [statut]="signalement.statut" />
+        <span class="detail__categorie">{{ categorie() }}</span>
+      </p>
+
+      <div class="visuel">
+        @if (signalement.photo; as photo) {
+          <img class="visuel__image" [src]="photo" [alt]="'Photo : ' + signalement.titre" />
+        } @else {
+          <!-- Jamais de case vide : l'icône de la catégorie occupe la place. -->
+          <div class="visuel__repli">
+            <ion-icon class="visuel__icone" [name]="icone()" aria-hidden="true"></ion-icon>
+            <span class="visuel__legende">Aucune photo</span>
+          </div>
+        }
+      </div>
+
+      <section class="section">
+        <h2 class="section__titre">Description</h2>
+        <p class="section__texte" [class.section__texte--replie]="descriptionLongue() && !descriptionDepliee()">
+          {{ signalement.description }}
+        </p>
+        @if (descriptionLongue() && !descriptionDepliee()) {
+          <button class="lien-action" type="button" (click)="deplierDescription()">
+            Lire la suite
+          </button>
+        }
+      </section>
+
+      <section class="section">
+        <h2 class="section__titre">Informations</h2>
+        <dl class="infos">
+          <dt class="infos__cle">Date</dt>
+          <dd class="infos__valeur">{{ date() }}</dd>
+          <dt class="infos__cle">Position</dt>
+          <dd class="infos__valeur infos__valeur--nombres">{{ coordonnees() }}</dd>
+          <dt class="infos__cle">Référence</dt>
+          <dd class="infos__valeur infos__valeur--nombres">{{ signalement.id }}</dd>
+        </dl>
+      </section>
+    </article>
+  } @else {
+    <div class="introuvable">
+      <h1 class="introuvable__titre">Signalement introuvable</h1>
+      <p class="introuvable__texte">
+        La référence « {{ id() }} » ne correspond à aucun signalement.
+      </p>
+    </div>
+  }
+</ion-content>
