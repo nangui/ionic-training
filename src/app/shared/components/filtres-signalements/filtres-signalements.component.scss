@@ -23,6 +23,15 @@
   display: none;
 }
 
+// Des que le contenu est plafonne et centre, le debordement lateral sortirait
+// du cadre : la rangee revient dans les marges.
+@media (min-width: 768px) {
+  .filtres__rangee {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
 .etiquette {
   flex: 0 0 auto;
   // 48px de haut : une etiquette de filtre est une cible tactile comme une

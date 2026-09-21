@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { TestBed } from '@angular/core/testing';
 
-import { ThemeService } from './theme.service';
+import { CLASSE_SOMBRE, CLE_STOCKAGE, ThemeService } from './theme.service';
 
 describe('ThemeService', () => {
   let service: ThemeService;
@@ -49,5 +52,25 @@ describe('ThemeService', () => {
     TestBed.tick();
 
     expect(localStorage.getItem('app.theme')).toBe('clair');
+  });
+});
+
+/**
+ * Le script anti-flash d'index.html applique le theme avant qu'Angular ne
+ * demarre. Il duplique donc forcement la cle de stockage et le nom de
+ * classe. Ce test transforme une derive silencieuse - un flash blanc que
+ * personne ne relierait a un renommage - en echec de suite.
+ */
+describe("contrat avec le script d'index.html", () => {
+  // Chemin depuis la racine du projet : import.meta.url n'est pas une URL
+  // de fichier dans l'environnement de test.
+  const html = readFileSync(resolve(process.cwd(), 'src/index.html'), 'utf8');
+
+  it('utilise la meme cle de stockage que le service', () => {
+    expect(html).toContain(`'${CLE_STOCKAGE}'`);
+  });
+
+  it('pose la meme classe que le service', () => {
+    expect(html).toContain(`'${CLASSE_SOMBRE}'`);
   });
 });

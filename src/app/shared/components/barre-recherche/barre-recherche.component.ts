@@ -21,12 +21,19 @@ export class BarreRechercheComponent {
   readonly saisie = signal('');
 
   private minuteur?: ReturnType<typeof setTimeout>;
+  private premierPassage = true;
 
   constructor() {
     addIcons({ search, closeCircle });
 
     effect((surDestruction) => {
       const valeur = this.saisie();
+      // L'effet s'execute une fois a l'initialisation : sans ce garde, le
+      // composant emettrait une recherche vide que personne n'a demandee.
+      if (this.premierPassage) {
+        this.premierPassage = false;
+        return;
+      }
       clearTimeout(this.minuteur);
       // Antirebond : on n'interroge pas la liste a chaque caractere.
       this.minuteur = setTimeout(

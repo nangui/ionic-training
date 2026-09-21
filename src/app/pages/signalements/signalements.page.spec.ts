@@ -5,7 +5,7 @@ import {
   LATENCE_LECTURE_MS,
   SignalementService,
 } from '../../core/services/signalement.service';
-import { SignalementsPage } from './signalements.page';
+import { SEUIL_CONNEXION_LENTE_MS, SignalementsPage } from './signalements.page';
 
 describe('SignalementsPage', () => {
   let component: SignalementsPage;
@@ -113,6 +113,46 @@ describe('SignalementsPage', () => {
 
     expect(component.filtresActifs()).toBe(false);
     expect(component.signalementsAffiches().length).toBe(3);
+  });
+
+  it('ne remplace pas une liste deja affichee par des silhouettes', async () => {
+    await attendreChargement();
+
+    // Un tire-pour-actualiser relance le chargement, mais le contenu doit
+    // rester a l'ecran : les silhouettes sont reservees au premier acces.
+    const rechargement = component.charger();
+    fixture.detectChanges();
+
+    expect(component.chargement()).toBe(true);
+    expect(component.chargementInitial()).toBe(false);
+    expect(fixture.nativeElement.querySelectorAll('app-carte-squelette').length).toBe(0);
+    expect(fixture.nativeElement.querySelectorAll('app-signalement-card').length).toBe(3);
+
+    await rechargement;
+  });
+
+  it('previent au-dela de dix secondes que la connexion semble lente', async () => {
+    vi.useFakeTimers();
+    try {
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]),
+          // Une lecture qui n'aboutit pas dans la fenetre observee.
+          { provide: LATENCE_LECTURE_MS, useValue: 60_000 },
+        ],
+      });
+      fixture = TestBed.createComponent(SignalementsPage);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.connexionLente()).toBe(false);
+
+      vi.advanceTimersByTime(SEUIL_CONNEXION_LENTE_MS);
+
+      expect(component.connexionLente()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('rend une carte par signalement affiche', async () => {

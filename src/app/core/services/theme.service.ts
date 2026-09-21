@@ -1,12 +1,12 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 
 /** Ce que l'utilisateur a choisi, et non ce qui est affiche. */
 export type PreferenceTheme = 'systeme' | 'clair' | 'sombre';
 
-const CLE_STOCKAGE = 'app.theme';
+export const CLE_STOCKAGE = 'app.theme';
 
 /** Classe posee sur <html> ; c'est celle que la palette d'Ionic attend. */
-const CLASSE_SOMBRE = 'ion-palette-dark';
+export const CLASSE_SOMBRE = 'ion-palette-dark';
 
 function preferenceStockee(): PreferenceTheme {
   try {
@@ -42,8 +42,11 @@ export class ThemeService {
   });
 
   constructor() {
-    this.requete.addEventListener('change', (evenement) =>
-      this.systemeSombre.set(evenement.matches),
+    const surChangementSysteme = (evenement: MediaQueryListEvent): void =>
+      this.systemeSombre.set(evenement.matches);
+    this.requete.addEventListener('change', surChangementSysteme);
+    inject(DestroyRef).onDestroy(() =>
+      this.requete.removeEventListener('change', surChangementSysteme),
     );
 
     effect(() => {

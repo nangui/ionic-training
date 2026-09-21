@@ -43,7 +43,7 @@ const SEUIL_DEFILEMENT = 24;
 export const NOMBRE_SQUELETTES = 3;
 
 /** Duree au-dela de laquelle on previent que la connexion semble lente. */
-const SEUIL_CONNEXION_LENTE_MS = 10_000;
+export const SEUIL_CONNEXION_LENTE_MS = 10_000;
 
 /** Retire les accents pour une recherche tolerante a la saisie. */
 function normaliser(texte: string): string {
@@ -106,6 +106,16 @@ export class SignalementsPage {
   private dernierDefilement = 0;
   private minuteurLenteur?: ReturnType<typeof setTimeout>;
 
+  /**
+   * Chargement initial uniquement : celui ou il n'y a encore rien a montrer.
+   * Un tire-pour-actualiser ne doit pas remplacer les cartes par des
+   * silhouettes - le contenu disparaitrait sous le pouce de l'utilisateur,
+   * avec en prime deux indicateurs de chargement simultanes.
+   */
+  readonly chargementInitial = computed(
+    () => this.chargement() && this.signalements().length === 0,
+  );
+
   /** Vrai des qu'une recherche ou un filtre restreint la liste. */
   readonly filtresActifs = computed(
     () =>
@@ -148,6 +158,9 @@ export class SignalementsPage {
   async charger(): Promise<void> {
     this.chargement.set(true);
     this.connexionLente.set(false);
+    // Un chargement relance alors qu'un autre court laisserait son minuteur
+    // tourner et declencherait « connexion lente » sans raison.
+    clearTimeout(this.minuteurLenteur);
     // Au-dela de dix secondes on le dit, plutot que de laisser tourner les
     // silhouettes sans explication.
     this.minuteurLenteur = setTimeout(
