@@ -1,50 +1,107 @@
 // Design tokens de l'application.
-// Palette claire unique, pensee pour une lecture en plein soleil : pas de
-// variante sombre, la palette sombre systeme d'Ionic est desactivee dans
-// global.scss. Tous les couples texte/fond ci-dessous sont >= 4.5:1 (WCAG AA).
+//
+// Palette claire par defaut, palette sombre via la preference systeme.
+// Tous les couples texte/fond ci-dessous sont verifies >= 4.5:1 (WCAG AA),
+// y compris les etiquettes de statut sur leur fond teinte.
 
 :root {
-  // ----- Couleurs de marque -----
+  // ----------- Espacements : echelle 4pt -----------
+  --app-space-1: 4px; // etiquette <-> valeur
+  --app-space-2: 8px; // lignes d'une carte
+  --app-space-3: 12px; // elements d'un formulaire
+  --app-space-4: 16px; // marges d'ecran, padding des cartes
+  --app-space-6: 24px; // entre sections
+  --app-space-8: 32px; // au-dessus d'un etat vide
+
+  // ----------- Typographie -----------
+  // En rem : la taille suit le reglage systeme de l'utilisateur.
+  // Aucune valeur sous 13px.
+  --app-font-title: 1.375rem; // 22px
+  --app-font-title-weight: 600;
+  --app-font-card-title: 1.0625rem; // 17px
+  --app-font-card-title-weight: 600;
+  --app-font-body: 1rem; // 16px
+  --app-font-body-weight: 400;
+  --app-font-meta: 0.875rem; // 14px
+  --app-font-meta-weight: 400;
+  --app-font-chip: 0.8125rem; // 13px
+  --app-font-chip-weight: 600;
+
+  // ----------- Rayons et elevation -----------
+  --app-radius-card: 12px;
+  --app-radius-chip: 999px;
+  --app-radius-input: 8px;
+  --app-shadow: 0 1px 2px rgba(21, 32, 28, 0.06), 0 2px 8px rgba(21, 32, 28, 0.05);
+
+  // ----------- Cibles tactiles -----------
+  --app-touch-min: 48px;
+  --app-card-min-height: 88px;
+
+  // ----------- Couleurs : mode clair -----------
   --app-color-primary: #0f766e;
   --app-color-primary-contrast: #ffffff;
-
-  // ----- Surfaces et texte -----
   --app-color-surface: #ffffff;
   --app-color-background: #f5f5f1;
   --app-color-text: #15201c;
   --app-color-text-muted: #5b6b66;
   --app-color-border: #e1e4e0;
-
-  // ----- Couleurs semantiques -----
   --app-color-danger: #c2261b;
   --app-color-warning: #b45309;
   --app-color-success: #15803d;
 
-  // ----- Statuts d'un signalement -----
+  // Statuts : couleur d'identite, fond teinte a 12 %, et couleur du texte
+  // sur ce fond. Le texte est legerement assombri par rapport a l'identite
+  // pour atteindre 4.5:1 sur son propre fond teinte (13px = petit texte).
   --app-color-status-nouveau: #1d4ed8;
+  --app-color-status-nouveau-bg: #e4eafa;
+  --app-color-status-nouveau-on-bg: #1d4ed8; // 5.57:1
   --app-color-status-encours: #b45309;
+  --app-color-status-encours-bg: #f6eae1;
+  --app-color-status-encours-on-bg: #ad5009; // 4.52:1
   --app-color-status-resolu: #15803d;
+  --app-color-status-resolu-bg: #e3f0e8;
+  --app-color-status-resolu-on-bg: #147c3b; // 4.50:1
 
-  // ----- Espacements : echelle 4pt -----
-  --app-space-1: 4px;
-  --app-space-2: 8px;
-  --app-space-3: 12px;
-  --app-space-4: 16px;
-  --app-space-5: 20px;
-  --app-space-6: 24px;
-  --app-space-8: 32px;
+  --app-scrim: rgba(21, 32, 28, 0.5);
+}
 
-  // ----- Formes et cibles tactiles -----
-  --app-radius: 12px;
-  --app-radius-pill: 999px;
-  --app-touch-min: 48px; // >= 44pt iOS / 48dp Android
-  --app-shadow-card: 0 1px 2px rgba(21, 32, 28, 0.06), 0 2px 8px rgba(21, 32, 28, 0.05);
+// ----------- Couleurs : mode sombre -----------
+// Les surfaces s'inversent et les couleurs de statut sont eclaircies
+// d'environ 15 % pour conserver le contraste sur fond sombre.
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-color-primary: #2da192;
+    --app-color-primary-contrast: #06201d;
+    --app-color-surface: #1a2320;
+    --app-color-background: #111714;
+    --app-color-text: #e8edea;
+    --app-color-text-muted: #9ba8a3;
+    --app-color-border: #31403b;
+    --app-color-danger: #f0776c;
+    --app-color-warning: #e8912f;
+    --app-color-success: #4ab870;
 
-  // ----- Correspondance avec les variables Ionic -----
+    --app-color-status-nouveau: #597fe9;
+    --app-color-status-nouveau-bg: #222e38;
+    --app-color-status-nouveau-on-bg: #6f90ec; // 4.54:1
+    --app-color-status-encours: #f37616;
+    --app-color-status-encours-bg: #342d1f;
+    --app-color-status-encours-on-bg: #f37616; // 4.81:1
+    --app-color-status-resolu: #20c25c;
+    --app-color-status-resolu-bg: #1b3627;
+    --app-color-status-resolu-on-bg: #20c25c; // 5.57:1
+
+    // Sur fond sombre une ombre ne se voit pas : la bordure porte seule
+    // la separation entre la carte et le fond.
+    --app-shadow: none;
+    --app-scrim: rgba(0, 0, 0, 0.6);
+  }
+}
+
+// ----------- Correspondance avec les variables Ionic -----------
+:root {
   --ion-background-color: var(--app-color-background);
-  --ion-background-color-rgb: 245, 245, 241;
   --ion-text-color: var(--app-color-text);
-  --ion-text-color-rgb: 21, 32, 28;
   --ion-border-color: var(--app-color-border);
   --ion-item-background: var(--app-color-surface);
   --ion-card-background: var(--app-color-surface);
@@ -53,32 +110,34 @@
   --ion-tab-bar-background: var(--app-color-surface);
   --ion-tab-bar-color: var(--app-color-text-muted);
   --ion-tab-bar-color-selected: var(--app-color-primary);
+  --ion-color-primary: var(--app-color-primary);
+  --ion-color-primary-contrast: var(--app-color-primary-contrast);
+  --ion-color-danger: var(--app-color-danger);
+  --ion-color-warning: var(--app-color-warning);
+  --ion-color-success: var(--app-color-success);
+}
 
-  --ion-color-primary: #0f766e;
-  --ion-color-primary-rgb: 15, 118, 110;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #0d6861;
-  --ion-color-primary-tint: #27847c;
+:root {
+  --ion-background-color-rgb: 245, 245, 241;
+  --ion-text-color-rgb: 21, 32, 28;
+}
 
-  --ion-color-danger: #c2261b;
-  --ion-color-danger-rgb: 194, 38, 27;
-  --ion-color-danger-contrast: #ffffff;
-  --ion-color-danger-contrast-rgb: 255, 255, 255;
-  --ion-color-danger-shade: #ab2118;
-  --ion-color-danger-tint: #c83c32;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color-rgb: 17, 23, 20;
+    --ion-text-color-rgb: 232, 237, 234;
+  }
+}
 
-  --ion-color-warning: #b45309;
-  --ion-color-warning-rgb: 180, 83, 9;
-  --ion-color-warning-contrast: #ffffff;
-  --ion-color-warning-contrast-rgb: 255, 255, 255;
-  --ion-color-warning-shade: #9e4908;
-  --ion-color-warning-tint: #bc6721;
-
-  --ion-color-success: #15803d;
-  --ion-color-success-rgb: 21, 128, 61;
-  --ion-color-success-contrast: #ffffff;
-  --ion-color-success-contrast-rgb: 255, 255, 255;
-  --ion-color-success-shade: #127136;
-  --ion-color-success-tint: #2d8d51;
+// ----------- Reduction des mouvements -----------
+// Preference systeme respectee : seules les opacites changent.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
