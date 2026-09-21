@@ -10,6 +10,7 @@
     "build:android": "ng build && npx cap sync android",
     "build:ios": "ng build && npx cap sync ios",
     "build:mobile": "ng build && npx cap sync",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"

@@ -3,7 +3,7 @@
 Versions **réellement installées** dans ce projet (relevées via `npm ls --depth=0`,
 `ng version` et `npx cap --version`), et non les plages déclarées dans `package.json`.
 
-Dernière mise à jour : 2026-09-21
+Dernière mise à jour : 2026-09-21 — régénérer avec `npm ls --depth=0` après chaque mise à jour de dépendances.
 
 ## Framework web
 
@@ -17,11 +17,14 @@ Dernière mise à jour : 2026-09-21
 | `@angular/router` | 22.1.7 |
 | `@angular/build` | 22.1.8 |
 | `@angular/cli` | 22.1.8 |
+| `@angular/compiler-cli` | 22.1.7 |
+| `@angular/language-service` | 22.1.7 |
 | `@ionic/angular` | 9.0.4 |
 | `@ionic/angular-toolkit` | 13.0.0 |
 | `ionicons` | 8.1.0 |
 | `rxjs` | 7.8.2 |
 | `typescript` | 6.0.3 |
+| `tslib` | 2.8.1 |
 
 ## Capacitor
 
@@ -86,6 +89,7 @@ plutôt que via CocoaPods.
 | `npm run build:android` | Build web + `cap sync android` |
 | `npm run build:ios` | Build web + `cap sync ios` |
 | `npm run build:mobile` | Build web + `cap sync` (les deux plateformes) |
+| `npm run typecheck` | Vérifie les types de **tout** `src/`, y compris les fichiers pas encore importés |
 | `npx cap run android` / `ios` | Déploie sur un émulateur/simulateur ou un appareil |
 | `npx cap open android` / `ios` | Ouvre Android Studio / Xcode |
 | `ionic cap run <platform> -l --external` | Live reload sur l'appareil |
