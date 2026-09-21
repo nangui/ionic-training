@@ -20,18 +20,43 @@ ion-content {
 }
 
 .contenu {
+  display: flex;
+  flex-direction: column;
+  // space-6 entre sections, et une marge laterale de space-4 comme partout.
+  gap: var(--app-space-6);
   max-width: 720px;
   margin: 0 auto;
-  padding-bottom: var(--app-space-8);
+  padding: var(--app-space-4) var(--app-space-4) var(--app-space-8);
 }
 
 .bloc {
   --ion-item-background: var(--app-color-surface);
-  margin-inline: var(--app-space-4);
+  // ion-list applique son propre padding vertical : on le neutralise pour
+  // que l'espacement vienne uniquement de l'echelle de l'application.
+  margin: 0;
+  padding: 0;
   border: 1px solid var(--app-color-border);
   border-radius: var(--app-radius-card);
   background: var(--app-color-surface);
   overflow: hidden;
+}
+
+.choix-theme {
+  padding: 0 var(--app-space-4) var(--app-space-4);
+}
+
+ion-segment {
+  --background: var(--app-color-background);
+}
+
+ion-segment-button {
+  --color: var(--app-color-text-muted);
+  --color-checked: var(--app-color-primary);
+  --indicator-color: var(--app-color-surface);
+  min-height: var(--app-touch-min);
+  font-size: var(--app-font-chip);
+  font-weight: var(--app-font-chip-weight);
+  text-transform: none;
 }
 
 ion-item {

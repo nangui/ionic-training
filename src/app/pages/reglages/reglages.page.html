@@ -53,12 +53,38 @@
       </ion-list-header>
 
       <ion-item lines="none">
-        <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>
+        <ion-icon slot="start" name="contrast" aria-hidden="true"></ion-icon>
         <ion-label>
           Thème
-          <ion-note>Suit le réglage de votre téléphone</ion-note>
+          <ion-note>
+            {{
+              preferenceTheme() === 'systeme'
+                ? (sombreActif()
+                    ? 'Suit votre téléphone, actuellement sombre'
+                    : 'Suit votre téléphone, actuellement clair')
+                : 'Choix manuel'
+            }}
+          </ion-note>
         </ion-label>
       </ion-item>
+
+      <div class="choix-theme">
+        <ion-segment
+          [value]="preferenceTheme()"
+          (ionChange)="changerTheme($any($event).detail.value)"
+          aria-label="Choix du thème"
+        >
+          <ion-segment-button value="clair">
+            <ion-label>Clair</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="sombre">
+            <ion-label>Sombre</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="systeme">
+            <ion-label>Système</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
     </ion-list>
 
     <ion-list class="bloc">

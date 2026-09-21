@@ -69,11 +69,14 @@
 // Les surfaces s'inversent et les couleurs de statut sont eclaircies
 // d'environ 15 % pour conserver le contraste sur fond sombre.
 //
+// Declenche par la classe .ion-palette-dark posee sur <html> par
+// ThemeService, et non par une media query : l'utilisateur doit pouvoir
+// choisir clair, sombre ou « suivre le telephone ».
+//
 // Ce bloc ne redefinit que ce que l'application pilote. Les paliers derives
-// d'Ionic viennent de dark.system.css, importe dans global.scss avant ce
+// d'Ionic viennent de dark.class.css, importe dans global.scss avant ce
 // fichier : les declarations ci-dessous le surchargent, l'inverse serait faux.
-@media (prefers-color-scheme: dark) {
-  :root {
+:root.ion-palette-dark {
     --app-color-primary: #2da192;
     --app-color-primary-contrast: #06201d;
     --app-color-surface: #1a2320;
@@ -95,15 +98,21 @@
     --app-color-status-resolu-bg: #1b3627;
     --app-color-status-resolu-on-bg: #20c25c; // 5.57:1
 
-    // Sur fond sombre une ombre ne se voit pas : la bordure porte seule
-    // la separation entre la carte et le fond.
-    --app-shadow: none;
-    --app-scrim: rgba(0, 0, 0, 0.6);
-  }
+  // Sur fond sombre une ombre ne se voit pas : la bordure porte seule la
+  // separation entre la carte et le fond.
+  --app-shadow: none;
+  --app-scrim: rgba(0, 0, 0, 0.6);
 }
 
 // ----------- Correspondance avec les variables Ionic -----------
-:root {
+// Ces declarations sont emises deux fois, a :root puis a
+// :root.ion-palette-dark. Ce n'est pas une redondance : dark.class.css
+// contient un bloc .ion-palette-dark.md (specificite 0,2,0) qui redefinit
+// exactement --ion-background-color, --ion-text-color, --ion-item-background,
+// --ion-toolbar-background, --ion-tab-bar-background et --ion-card-background.
+// Un simple :root (0,1,0) perdrait contre lui en mode sombre. Le second bloc
+// egalise la specificite et l'emporte par l'ordre de chargement.
+@mixin correspondance-ionic {
   --ion-background-color: var(--app-color-background);
   --ion-text-color: var(--app-color-text);
   --ion-border-color: var(--app-color-border);
@@ -122,15 +131,17 @@
 }
 
 :root {
+  @include correspondance-ionic;
+
   --ion-background-color-rgb: 245, 245, 241;
   --ion-text-color-rgb: 21, 32, 28;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ion-background-color-rgb: 17, 23, 20;
-    --ion-text-color-rgb: 232, 237, 234;
-  }
+:root.ion-palette-dark {
+  @include correspondance-ionic;
+
+  --ion-background-color-rgb: 17, 23, 20;
+  --ion-text-color-rgb: 232, 237, 234;
 }
 
 // ----------- Reduction des mouvements -----------

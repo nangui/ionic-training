@@ -33,13 +33,14 @@
  */
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-/* Palette sombre systeme d'Ionic. Indispensable : elle ne fournit pas que
-   des couleurs de marque, mais les 41 paliers derives
-   (--ion-background-color-step-*, --ion-text-color-step-*) dont dependent
-   37 composants Ionic - en-tetes de liste, notes, placeholders, pistes de
-   bascule. Sans elle ces paliers restent sur leurs valeurs de mode clair et
-   deviennent illisibles sur fond sombre.
-   theme/variables.scss est charge apres et ecrase les valeurs que l'app
-   pilote elle-meme (surfaces, texte, primaire, statuts). */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* Palette sombre d'Ionic, variante « classe ».
+   Indispensable : elle ne fournit pas que des couleurs de marque, mais les
+   41 paliers derives (--ion-background-color-step-*, --ion-text-color-step-*)
+   dont dependent 37 composants Ionic - en-tetes de liste, notes,
+   placeholders, pistes de bascule.
+   Variante classe et non systeme : l'utilisateur peut choisir clair, sombre
+   ou « suivre le telephone », et une media query ne se desactive pas.
+   ThemeService pose ou retire .ion-palette-dark sur <html>.
+   theme/variables.scss est charge apres et garde la main sur les valeurs que
+   l'application pilote elle-meme. */
+@import '@ionic/angular/css/palettes/dark.class.css';
