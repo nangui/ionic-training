@@ -1,8 +1,9 @@
 .en-tete ion-title {
-  // Titre a gauche sur les deux plateformes : iOS le centre des qu'il y a un
-  // bouton retour, ce qui rompait l'alignement des autres ecrans.
-  padding-inline: 0;
-  text-align: start;
+  // Pas d'alignement force ici, contrairement aux autres ecrans : cette
+  // barre porte un bouton retour, et en mode iOS le titre est positionne
+  // en absolu a partir du bord. Le coller a gauche le ferait passer sous
+  // le bouton. On laisse donc Ionic appliquer la convention de la
+  // plateforme - centre sur iOS, a gauche sur Material.
   font-size: var(--app-font-title);
   font-weight: var(--app-font-title-weight);
 }
