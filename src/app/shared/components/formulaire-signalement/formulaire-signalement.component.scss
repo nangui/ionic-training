@@ -1,0 +1,173 @@
+.formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--app-space-4) var(--app-space-4) var(--app-space-8);
+}
+
+// ----- Champs -----
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.champ__libelle {
+  color: var(--app-color-text);
+  font-size: var(--app-font-meta);
+  font-weight: 600;
+}
+
+.champ__saisie {
+  width: 100%;
+  // Hauteur de saisie >= 48px : cible tactile confortable debout, a une main.
+  min-height: var(--app-touch-min);
+  padding: var(--app-space-3);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-surface);
+  color: var(--app-color-text);
+  // 16px : en dessous, iOS zoome automatiquement a la mise au point.
+  font-size: var(--app-font-body);
+  font-family: inherit;
+}
+
+.champ__saisie:focus-visible {
+  outline: 2px solid var(--app-color-primary);
+  outline-offset: 2px;
+}
+
+.champ__saisie--zone {
+  min-height: 112px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.champ__saisie--erreur {
+  border-color: var(--app-color-danger);
+}
+
+.champ__aide,
+.champ__erreur {
+  margin: 0;
+  font-size: var(--app-font-meta);
+  line-height: 1.4;
+}
+
+.champ__aide {
+  color: var(--app-color-text-muted);
+}
+
+// L'erreur s'affiche sous le champ concerne, jamais dans une alerte.
+.champ__erreur {
+  color: var(--app-color-danger);
+}
+
+.champ__fichier {
+  // Masque visuellement mais reste accessible au clavier via son label.
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+// ----- Photo -----
+.photo {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-4);
+}
+
+.photo__apercu {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--app-radius-input);
+  object-fit: cover;
+}
+
+.photo__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+// ----- Position -----
+.position {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.position__etat {
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  margin: 0;
+  color: var(--app-color-text);
+  font-size: var(--app-font-body);
+}
+
+.position__etat--nombres {
+  font-variant-numeric: tabular-nums;
+}
+
+.position__etat--refus {
+  color: var(--app-color-text-muted);
+  font-size: var(--app-font-meta);
+  line-height: 1.5;
+}
+
+// ----- Boutons -----
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  min-height: var(--app-touch-min);
+  padding: 0 var(--app-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-input);
+  font-family: inherit;
+  font-size: var(--app-font-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 100ms ease-in-out;
+}
+
+.bouton:active {
+  filter: brightness(0.92);
+}
+
+.bouton--pleine-largeur {
+  width: 100%;
+}
+
+.bouton--principal {
+  background: var(--app-color-primary);
+  color: var(--app-color-primary-contrast);
+}
+
+.bouton--principal[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bouton--secondaire {
+  border-color: var(--app-color-border);
+  background: var(--app-color-surface);
+  color: var(--app-color-primary);
+}
+
+.bouton--texte {
+  background: none;
+  color: var(--app-color-text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}

@@ -1,0 +1,20 @@
+<a class="carte" [routerLink]="lien()" [attr.aria-label]="resume()">
+  <span class="vignette" aria-hidden="true">
+    @if (signalement().photo; as photo) {
+      <img class="vignette__image" [src]="photo" alt="" />
+    } @else {
+      <ion-icon class="vignette__icone" [name]="icone()"></ion-icon>
+    }
+  </span>
+
+  <span class="corps">
+    <span class="corps__haut">
+      <app-statut-chip [statut]="signalement().statut" />
+      <span class="corps__categorie">{{ categorie() }}</span>
+    </span>
+
+    <span class="corps__titre">{{ signalement().titre }}</span>
+
+    <span class="corps__date">{{ date() }}</span>
+  </span>
+</a>

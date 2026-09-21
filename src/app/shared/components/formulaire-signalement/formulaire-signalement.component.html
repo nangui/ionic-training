@@ -1,0 +1,144 @@
+<form class="formulaire" [formGroup]="formulaire" (ngSubmit)="soumettre()" novalidate>
+  <!-- Titre -->
+  <div class="champ">
+    <label class="champ__libelle" for="titre">Titre <span aria-hidden="true">*</span></label>
+    <input
+      class="champ__saisie"
+      id="titre"
+      type="text"
+      formControlName="titre"
+      autocomplete="off"
+      enterkeyhint="next"
+      placeholder="Nid-de-poule rue Victor Hugo"
+      [class.champ__saisie--erreur]="enErreur('titre')"
+      [attr.aria-invalid]="enErreur('titre')"
+      [attr.aria-describedby]="enErreur('titre') ? 'titre-erreur' : 'titre-aide'"
+    />
+    @if (enErreur('titre')) {
+      <p class="champ__erreur" id="titre-erreur" role="alert">{{ messageErreur('titre') }}</p>
+    } @else {
+      <p class="champ__aide" id="titre-aide">Une ligne suffit : le lieu et la nature du problème.</p>
+    }
+  </div>
+
+  <!-- Categorie -->
+  <div class="champ">
+    <label class="champ__libelle" for="categorie">Catégorie</label>
+    <select class="champ__saisie" id="categorie" formControlName="categorie">
+      @for (categorie of categories; track categorie) {
+        <option [value]="categorie">{{ libellesCategorie[categorie] }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Description -->
+  <div class="champ">
+    <label class="champ__libelle" for="description">Description <span aria-hidden="true">*</span></label>
+    <textarea
+      class="champ__saisie champ__saisie--zone"
+      id="description"
+      rows="4"
+      formControlName="description"
+      placeholder="Ce que vous constatez, depuis quand, et ce que ça empêche."
+      [class.champ__saisie--erreur]="enErreur('description')"
+      [attr.aria-invalid]="enErreur('description')"
+      [attr.aria-describedby]="enErreur('description') ? 'description-erreur' : 'description-aide'"
+    ></textarea>
+    @if (enErreur('description')) {
+      <p class="champ__erreur" id="description-erreur" role="alert">
+        {{ messageErreur('description') }}
+      </p>
+    } @else {
+      <p class="champ__aide" id="description-aide">
+        Plus c'est précis, plus l'intervention est rapide.
+      </p>
+    }
+  </div>
+
+  <!-- Photo -->
+  <div class="champ">
+    <span class="champ__libelle" id="photo-libelle">Photo</span>
+    @if (photo(); as apercu) {
+      <div class="photo">
+        <img class="photo__apercu" [src]="apercu" alt="Aperçu de la photo jointe" />
+        <div class="photo__actions">
+          <label class="bouton bouton--secondaire" for="photo">
+            <ion-icon name="camera" aria-hidden="true"></ion-icon>
+            Remplacer
+          </label>
+          <button class="bouton bouton--secondaire" type="button" (click)="retirerPhoto()">
+            <ion-icon name="close" aria-hidden="true"></ion-icon>
+            Retirer
+          </button>
+        </div>
+      </div>
+    } @else {
+      <label class="bouton bouton--secondaire bouton--pleine-largeur" for="photo">
+        <ion-icon name="camera" aria-hidden="true"></ion-icon>
+        Ajouter une photo
+      </label>
+      <p class="champ__aide">Facultatif. Un envoi sans photo reste utile.</p>
+    }
+    <input
+      class="champ__fichier"
+      id="photo"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      aria-labelledby="photo-libelle"
+      (change)="choisirPhoto($event)"
+    />
+  </div>
+
+  <!-- Position -->
+  <div class="champ">
+    <span class="champ__libelle">Position</span>
+    <div class="position" [attr.aria-live]="'polite'">
+      @switch (etatPosition()) {
+        @case ('chargement') {
+          <p class="position__etat">
+            <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+            Localisation…
+          </p>
+        }
+        @case ('rempli') {
+          <p class="position__etat position__etat--nombres">
+            {{ coordonnees() }}
+          </p>
+          <button class="bouton bouton--secondaire" type="button" (click)="localiser()">
+            <ion-icon name="refresh" aria-hidden="true"></ion-icon>
+            Actualiser
+          </button>
+        }
+        @case ('refuse') {
+          <p class="position__etat position__etat--refus">
+            Accès à la position refusé. Vous pouvez envoyer le signalement sans
+            position, ou réessayer après avoir autorisé la localisation.
+          </p>
+          <button class="bouton bouton--secondaire" type="button" (click)="localiser()">
+            <ion-icon name="locate" aria-hidden="true"></ion-icon>
+            Réessayer
+          </button>
+        }
+        @default {
+          <button class="bouton bouton--secondaire bouton--pleine-largeur" type="button" (click)="localiser()">
+            <ion-icon name="locate" aria-hidden="true"></ion-icon>
+            Utiliser ma position
+          </button>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="bouton bouton--principal" type="submit" [disabled]="envoiEnCours()">
+      @if (envoiEnCours()) {
+        <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+        <span>Envoi…</span>
+      } @else {
+        <span>Envoyer le signalement</span>
+      }
+    </button>
+    <button class="bouton bouton--texte" type="button" (click)="annule.emit()">Annuler</button>
+  </div>
+</form>
