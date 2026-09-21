@@ -155,6 +155,52 @@ describe('SignalementsPage', () => {
     }
   });
 
+  it('affiche un etat d erreur plutot qu une liste vide quand la lecture echoue', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: SignalementService,
+          useValue: { lister: () => Promise.reject(new Error('reseau')) },
+        },
+      ],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.erreurBloquante()).toBe(true);
+    expect(component.chargement()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Chargement impossible');
+  });
+
+  it('rend la main au refresher meme si la lecture echoue', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: SignalementService,
+          useValue: { lister: () => Promise.reject(new Error('reseau')) },
+        },
+      ],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    let complete = 0;
+    // Sans le finally de rafraichir(), complete() ne serait jamais appele et
+    // l'indicateur tournerait indefiniment.
+    await component.rafraichir({
+      detail: { complete: () => (complete += 1) },
+    } as unknown as Parameters<SignalementsPage['rafraichir']>[0]);
+
+    expect(complete).toBe(1);
+  });
+
   it('rend une carte par signalement affiche', async () => {
     await attendreChargement();
 

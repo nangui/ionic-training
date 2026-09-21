@@ -43,6 +43,10 @@ export const PLUGIN_RESEAU = new InjectionToken<PluginReseau>('plugin reseau', {
  * `navigator.onLine` sert quand meme de valeur initiale : le plugin repond
  * de facon asynchrone, et il vaut mieux une estimation immediate qu'un
  * ecran qui s'annonce hors ligne le temps d'une promesse.
+ *
+ * Portee du gain : sur Android et iOS uniquement. L'implementation web du
+ * plugin retombe elle aussi sur `window.navigator.onLine` ; en `ionic serve`
+ * ou en PWA, la detection reste donc aussi approximative qu'avant.
  */
 @Injectable({ providedIn: 'root' })
 export class ReseauService {

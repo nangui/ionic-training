@@ -105,6 +105,10 @@ ion-content {
   color: var(--app-color-success);
 }
 
+.vide__icone--erreur {
+  color: var(--app-color-danger);
+}
+
 .vide__titre {
   margin: var(--app-space-4) 0 var(--app-space-2);
   color: var(--app-color-text);

@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   IonButton,
   IonButtons,
@@ -17,7 +24,7 @@ import {
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, checkmarkCircle, cloudOffline } from 'ionicons/icons';
+import { add, alertCircle, checkmarkCircle, cloudOffline } from 'ionicons/icons';
 
 import {
   CategorieSignalement,
@@ -89,6 +96,7 @@ export class SignalementsPage {
 
   readonly chargement = signal(true);
   readonly connexionLente = signal(false);
+  readonly erreur = signal(false);
 
   readonly enLigne = this.reseauService.enLigne;
 
@@ -105,6 +113,12 @@ export class SignalementsPage {
 
   private dernierDefilement = 0;
   private minuteurLenteur?: ReturnType<typeof setTimeout>;
+  private detruit = false;
+
+  /** Echec alors qu'il n'y a rien a afficher : l'ecran entier est en erreur. */
+  readonly erreurBloquante = computed(
+    () => this.erreur() && this.signalements().length === 0,
+  );
 
   /**
    * Chargement initial uniquement : celui ou il n'y a encore rien a montrer.
@@ -150,14 +164,25 @@ export class SignalementsPage {
   });
 
   constructor() {
-    addIcons({ add, checkmarkCircle, cloudOffline });
+    addIcons({ add, alertCircle, checkmarkCircle, cloudOffline });
+    inject(DestroyRef).onDestroy(() => {
+      this.detruit = true;
+      clearTimeout(this.minuteurLenteur);
+    });
     void this.charger();
   }
 
-  /** Recharge la liste depuis le service. */
+  /**
+   * Recharge la liste depuis le service.
+   *
+   * Ne rejette jamais : un echec devient un etat de l'ecran. Sans ca, un
+   * appelant comme le tire-pour-actualiser resterait bloque avant son
+   * `complete()` et l'indicateur tournerait indefiniment.
+   */
   async charger(): Promise<void> {
     this.chargement.set(true);
     this.connexionLente.set(false);
+    this.erreur.set(false);
     // Un chargement relance alors qu'un autre court laisserait son minuteur
     // tourner et declencherait « connexion lente » sans raison.
     clearTimeout(this.minuteurLenteur);
@@ -169,12 +194,38 @@ export class SignalementsPage {
     );
 
     try {
-      this.signalements.set(await this.signalementService.lister());
+      const signalements = await this.signalementService.lister();
+      if (!this.detruit) {
+        this.signalements.set(signalements);
+      }
+    } catch {
+      if (!this.detruit) {
+        this.erreur.set(true);
+        // La liste deja affichee reste a l'ecran : un echec de
+        // rafraichissement ne doit pas effacer ce que l'utilisateur lisait.
+        if (this.signalements().length > 0) {
+          await this.signalerEchec();
+        }
+      }
     } finally {
       clearTimeout(this.minuteurLenteur);
-      this.connexionLente.set(false);
-      this.chargement.set(false);
+      if (!this.detruit) {
+        this.connexionLente.set(false);
+        this.chargement.set(false);
+      }
     }
+  }
+
+  /** Toast d'echec avec une action de reprise, quand du contenu est visible. */
+  private async signalerEchec(): Promise<void> {
+    const toast = await this.toastController.create({
+      message: 'Actualisation impossible.',
+      duration: 4000,
+      position: 'bottom',
+      color: 'danger',
+      buttons: [{ text: 'Réessayer', handler: () => void this.charger() }],
+    });
+    await toast.present();
   }
 
   /** Cible de navigation vers le detail d'un signalement. */
@@ -184,8 +235,13 @@ export class SignalementsPage {
 
   /** Tire-pour-actualiser : recharge puis rend la main au refresher. */
   async rafraichir(evenement: RefresherCustomEvent): Promise<void> {
-    await this.charger();
-    evenement.detail.complete();
+    try {
+      await this.charger();
+    } finally {
+      // Rendre la main au refresher quoi qu'il arrive : sans ce finally,
+      // un echec laisserait l'indicateur tourner sans fin.
+      evenement.detail.complete();
+    }
   }
 
   surDefilement(evenement: CustomEvent<ScrollDetail>): void {

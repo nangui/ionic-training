@@ -63,7 +63,20 @@
       />
     </div>
 
-    @if (chargementInitial()) {
+    @if (erreurBloquante()) {
+      <!-- Echec avec un ecran vide : on explique et on propose la reprise,
+           plutot que de laisser une liste vide qui ressemble a « aucun
+           signalement ». -->
+      <div class="vide">
+        <ion-icon class="vide__icone vide__icone--erreur" name="alert-circle" aria-hidden="true"></ion-icon>
+        <h2 class="vide__titre">Chargement impossible</h2>
+        <p class="vide__texte">
+          Les signalements n'ont pas pu être récupérés. Vérifiez votre
+          connexion, puis réessayez.
+        </p>
+        <button class="bouton-contour" type="button" (click)="charger()">Réessayer</button>
+      </div>
+    } @else if (chargementInitial()) {
       <!-- Silhouettes plutôt qu'une roue centrale : elles occupent la place
            que les cartes vont prendre, la liste ne sursaute pas à l'arrivée. -->
       <div class="liste" aria-busy="true" aria-live="polite">

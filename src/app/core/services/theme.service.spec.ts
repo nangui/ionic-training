@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { TestBed } from '@angular/core/testing';
@@ -64,13 +64,23 @@ describe('ThemeService', () => {
 describe("contrat avec le script d'index.html", () => {
   // Chemin depuis la racine du projet : import.meta.url n'est pas une URL
   // de fichier dans l'environnement de test.
-  const html = readFileSync(resolve(process.cwd(), 'src/index.html'), 'utf8');
+  const chemin = resolve(process.cwd(), 'src/index.html');
+  if (!existsSync(chemin)) {
+    throw new Error(
+      `index.html introuvable a ${chemin}. Ce test doit etre lance depuis la racine du projet.`,
+    );
+  }
+  const html = readFileSync(chemin, 'utf8');
+
+  /** Tolere apostrophes ou guillemets : le style de citation n'est pas le sujet. */
+  const cite = (valeur: string): RegExp =>
+    new RegExp(`['"\`]${valeur.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}['"\`]`);
 
   it('utilise la meme cle de stockage que le service', () => {
-    expect(html).toContain(`'${CLE_STOCKAGE}'`);
+    expect(html).toMatch(cite(CLE_STOCKAGE));
   });
 
   it('pose la meme classe que le service', () => {
-    expect(html).toContain(`'${CLASSE_SOMBRE}'`);
+    expect(html).toMatch(cite(CLASSE_SOMBRE));
   });
 });
