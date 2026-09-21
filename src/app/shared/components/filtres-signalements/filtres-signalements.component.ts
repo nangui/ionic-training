@@ -12,9 +12,10 @@ import {
 /**
  * Rangee d'etiquettes de filtre, a defilement horizontal.
  *
- * Selection multiple dans chaque famille : aucune etiquette cochee signifie
- * « toutes », ce qui evite d'avoir a cocher les cinq categories pour voir
- * l'ensemble de la liste.
+ * Une seule valeur active par famille, parce que c'est ce que
+ * `GET /signalements` accepte : le filtrage est delegue au serveur, seul a
+ * connaitre l'ensemble des donnees. Aucune etiquette active signifie
+ * « toutes ». Un second appui sur l'etiquette active la retire.
  */
 @Component({
   selector: 'app-filtres-signalements',
@@ -23,8 +24,8 @@ import {
   styleUrls: ['filtres-signalements.component.scss'],
 })
 export class FiltresSignalementsComponent {
-  readonly categories = input.required<readonly CategorieSignalement[]>();
-  readonly statuts = input.required<readonly StatutSignalement[]>();
+  readonly categorie = input.required<CategorieSignalement | undefined>();
+  readonly statut = input.required<StatutSignalement | undefined>();
 
   readonly categorieBasculee = output<CategorieSignalement>();
   readonly statutBascule = output<StatutSignalement>();
@@ -35,10 +36,10 @@ export class FiltresSignalementsComponent {
   readonly libellesStatut = LIBELLES_STATUT;
 
   categorieActive(categorie: CategorieSignalement): boolean {
-    return this.categories().includes(categorie);
+    return this.categorie() === categorie;
   }
 
   statutActif(statut: StatutSignalement): boolean {
-    return this.statuts().includes(statut);
+    return this.statut() === statut;
   }
 }

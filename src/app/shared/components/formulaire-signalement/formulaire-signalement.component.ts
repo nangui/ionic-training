@@ -9,14 +9,14 @@ import { formaterCoordonnees } from '../../../core/models/signalement.format';
 import {
   CATEGORIES_SIGNALEMENT,
   LIBELLES_CATEGORIE,
-  Signalement,
+  SignalementCreation,
 } from '../../../core/models/signalement.model';
 
 /** Etat du bloc position. */
 export type EtatPosition = 'vide' | 'chargement' | 'rempli' | 'refuse';
 
-/** Ce que le formulaire remonte une fois valide. */
-export type BrouillonSignalement = Omit<Signalement, 'id' | 'statut' | 'dateCreation'>;
+/** Ce que le formulaire remonte une fois valide : le contrat de l'API. */
+export type BrouillonSignalement = SignalementCreation;
 
 @Component({
   selector: 'app-formulaire-signalement',
@@ -132,7 +132,8 @@ export class FormulaireSignalementComponent {
       titre: valeurs.titre,
       description: valeurs.description,
       categorie: valeurs.categorie as BrouillonSignalement['categorie'],
-      photo: this.photo(),
+      // L'API attend null et non undefined pour « pas de photo ».
+      photo: this.photo() ?? null,
       latitude: valeurs.latitude,
       longitude: valeurs.longitude,
     });

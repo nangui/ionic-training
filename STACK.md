@@ -81,6 +81,28 @@ Les versions SDK et AndroidX sont centralisées dans `android/variables.gradle`.
 Capacitor 8 déclare les plugins iOS via `Package.swift` (Swift Package Manager)
 plutôt que via CocoaPods.
 
+## API
+
+Backend de la formation, documenté par OpenAPI.
+
+| Élément | Valeur |
+| --- | --- |
+| Base | `https://setal-api-formation-production.up.railway.app` |
+| Schéma | `/openapi.json` |
+| Isolation | En-tête `X-Trainee` — chacun ne voit que ses propres signalements. Sans en-tête, jeu commun « demo ». |
+| CORS | `Access-Control-Allow-Origin: *` — vérifié pour `localhost:4200`, `capacitor://localhost` et `http://localhost` |
+
+| Endpoint | Usage |
+| --- | --- |
+| `GET /signalements` | Liste. Paramètres `q`, `categorie`, `statut`, `limit` (défaut 20), `offset` |
+| `GET /signalements/{id}` | Détail |
+| `POST /signalements` | Création |
+| `PATCH /signalements/{id}` | Modification (pas encore utilisé) |
+| `DELETE /signalements/{id}` | Suppression (pas encore utilisé) |
+| `POST /reset` | Restaure le jeu initial du participant |
+
+L'URL et le prénom envoyé dans `X-Trainee` vivent dans `src/environments/environment.ts`.
+
 ## Commandes
 
 | Commande | Effet |

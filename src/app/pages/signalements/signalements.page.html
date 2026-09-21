@@ -56,8 +56,8 @@
     <div class="outils">
       <app-barre-recherche (recherche)="surRecherche($event)" />
       <app-filtres-signalements
-        [categories]="categoriesFiltrees()"
-        [statuts]="statutsFiltres()"
+        [categorie]="categorieFiltree()"
+        [statut]="statutFiltre()"
         (categorieBasculee)="basculerCategorie($event)"
         (statutBascule)="basculerStatut($event)"
       />

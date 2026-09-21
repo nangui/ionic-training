@@ -3,8 +3,10 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   IonButton,
@@ -28,6 +30,7 @@ import { add, alertCircle, checkmarkCircle, cloudOffline } from 'ionicons/icons'
 
 import {
   CategorieSignalement,
+  CriteresRecherche,
   Signalement,
   StatutSignalement,
 } from '../../core/models/signalement.model';
@@ -101,8 +104,14 @@ export class SignalementsPage {
   readonly enLigne = this.reseauService.enLigne;
 
   readonly recherche = signal('');
-  readonly categoriesFiltrees = signal<readonly CategorieSignalement[]>([]);
-  readonly statutsFiltres = signal<readonly StatutSignalement[]>([]);
+  // Une seule valeur par famille : `GET /signalements` n'accepte qu'une
+  // categorie et qu'un statut. Filtrer plusieurs valeurs cote client
+  // donnerait des resultats faux des que la liste depasse une page.
+  readonly categorieFiltree = signal<CategorieSignalement | undefined>(undefined);
+  readonly statutFiltre = signal<StatutSignalement | undefined>(undefined);
+
+  /** Nombre total cote serveur, tous filtres appliques. */
+  readonly total = signal(0);
 
   /** Le bouton flottant s'efface quand on descend, revient quand on remonte. */
   readonly fabVisible = signal(true);
@@ -110,6 +119,8 @@ export class SignalementsPage {
   readonly modalOuvert = signal(false);
 
   readonly squelettes = Array.from({ length: NOMBRE_SQUELETTES });
+
+  private readonly formulaire = viewChild(FormulaireSignalementComponent);
 
   private dernierDefilement = 0;
   private minuteurLenteur?: ReturnType<typeof setTimeout>;
@@ -134,34 +145,16 @@ export class SignalementsPage {
   readonly filtresActifs = computed(
     () =>
       this.recherche().length > 0 ||
-      this.categoriesFiltrees().length > 0 ||
-      this.statutsFiltres().length > 0,
+      this.categorieFiltree() !== undefined ||
+      this.statutFiltre() !== undefined,
   );
 
   /**
-   * Ce que la vue affiche reellement.
-   *
-   * Une famille de filtres vide signifie « toutes » : sans ca, il faudrait
-   * cocher les cinq categories pour revoir la liste entiere.
+   * Ce que la vue affiche : exactement ce que le serveur a renvoye. Le
+   * filtrage, la recherche et la pagination lui sont delegues - lui seul
+   * connait l'ensemble des donnees.
    */
-  readonly signalementsAffiches = computed(() => {
-    const terme = normaliser(this.recherche());
-    const categories = this.categoriesFiltrees();
-    const statuts = this.statutsFiltres();
-
-    return this.signalements().filter((signalement) => {
-      const correspondCategorie =
-        categories.length === 0 || categories.includes(signalement.categorie);
-      const correspondStatut =
-        statuts.length === 0 || statuts.includes(signalement.statut);
-      const correspondTerme =
-        terme.length === 0 ||
-        normaliser(signalement.titre).includes(terme) ||
-        normaliser(signalement.description).includes(terme);
-
-      return correspondCategorie && correspondStatut && correspondTerme;
-    });
-  });
+  readonly signalementsAffiches = computed(() => this.signalements());
 
   constructor() {
     addIcons({ add, alertCircle, checkmarkCircle, cloudOffline });
@@ -169,7 +162,17 @@ export class SignalementsPage {
       this.detruit = true;
       clearTimeout(this.minuteurLenteur);
     });
-    void this.charger();
+
+    // Toute variation de critere relance une lecture : c'est le serveur qui
+    // filtre, pas la vue.
+    effect(() => {
+      const criteres = {
+        q: this.recherche() || undefined,
+        categorie: this.categorieFiltree(),
+        statut: this.statutFiltre(),
+      };
+      void this.charger(criteres);
+    });
   }
 
   /**
@@ -179,7 +182,12 @@ export class SignalementsPage {
    * appelant comme le tire-pour-actualiser resterait bloque avant son
    * `complete()` et l'indicateur tournerait indefiniment.
    */
-  async charger(): Promise<void> {
+  async charger(criteres?: CriteresRecherche): Promise<void> {
+    const criteresEffectifs = criteres ?? {
+      q: this.recherche() || undefined,
+      categorie: this.categorieFiltree(),
+      statut: this.statutFiltre(),
+    };
     this.chargement.set(true);
     this.connexionLente.set(false);
     this.erreur.set(false);
@@ -194,9 +202,10 @@ export class SignalementsPage {
     );
 
     try {
-      const signalements = await this.signalementService.lister();
+      const page = await this.signalementService.lister(criteresEffectifs);
       if (!this.detruit) {
-        this.signalements.set(signalements);
+        this.signalements.set(page.data);
+        this.total.set(page.total);
       }
     } catch {
       if (!this.detruit) {
@@ -257,26 +266,21 @@ export class SignalementsPage {
     this.recherche.set(terme);
   }
 
+  /** Un second appui sur l'etiquette active la retire. */
   basculerCategorie(categorie: CategorieSignalement): void {
-    this.categoriesFiltrees.update((actuelles) =>
-      actuelles.includes(categorie)
-        ? actuelles.filter((c) => c !== categorie)
-        : [...actuelles, categorie],
+    this.categorieFiltree.update((actuelle) =>
+      actuelle === categorie ? undefined : categorie,
     );
   }
 
   basculerStatut(statut: StatutSignalement): void {
-    this.statutsFiltres.update((actuels) =>
-      actuels.includes(statut)
-        ? actuels.filter((s) => s !== statut)
-        : [...actuels, statut],
-    );
+    this.statutFiltre.update((actuel) => (actuel === statut ? undefined : statut));
   }
 
   reinitialiserFiltres(): void {
     this.recherche.set('');
-    this.categoriesFiltrees.set([]);
-    this.statutsFiltres.set([]);
+    this.categorieFiltree.set(undefined);
+    this.statutFiltre.set(undefined);
   }
 
   ouvrirCreation(): void {
@@ -288,14 +292,32 @@ export class SignalementsPage {
   }
 
   async enregistrer(brouillon: BrouillonSignalement): Promise<void> {
-    // Donnees statiques : rien n'est persiste, on confirme et on ferme.
-    this.fermerCreation();
-    const toast = await this.toastController.create({
-      message: `« ${brouillon.titre} » a été envoyé.`,
-      duration: 2000,
-      position: 'bottom',
-      color: 'success',
-    });
-    await toast.present();
+    try {
+      const cree = await this.signalementService.creer(brouillon);
+      this.fermerCreation();
+      // Relecture plutot qu'insertion locale : le serveur decide de l'ordre
+      // et des champs qu'il a completes (id, statut, dateCreation).
+      await this.charger();
+      const toast = await this.toastController.create({
+        message: `« ${cree.titre} » a été envoyé.`,
+        duration: 2000,
+        position: 'bottom',
+        color: 'success',
+      });
+      await toast.present();
+    } catch (erreur) {
+      // La modale reste ouverte et la saisie est conservee : l'utilisateur
+      // ne doit pas avoir a tout retaper apres une coupure.
+      this.formulaire()?.terminerEnvoi();
+      const toast = await this.toastController.create({
+        message:
+          erreur instanceof Error ? erreur.message : "L'envoi a échoué.",
+        duration: 5000,
+        position: 'bottom',
+        color: 'danger',
+        buttons: [{ text: 'Réessayer', handler: () => void this.enregistrer(brouillon) }],
+      });
+      await toast.present();
+    }
   }
 }

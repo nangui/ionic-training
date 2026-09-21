@@ -2,144 +2,191 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import {
-  LATENCE_LECTURE_MS,
-  SignalementService,
-} from '../../core/services/signalement.service';
+  CriteresRecherche,
+  PageSignalements,
+  Signalement,
+} from '../../core/models/signalement.model';
+import { SignalementService } from '../../core/services/signalement.service';
 import { SEUIL_CONNEXION_LENTE_MS, SignalementsPage } from './signalements.page';
+
+const SIGNALEMENTS: Signalement[] = [
+  {
+    id: 1,
+    titre: 'Nid-de-poule sur la VDN',
+    categorie: 'voirie',
+    description: 'Un trou sur la voie de droite.',
+    photo: null,
+    latitude: 14.71,
+    longitude: -17.47,
+    statut: 'nouveau',
+    dateCreation: '2026-09-20T08:00:00.000Z',
+  },
+  {
+    id: 2,
+    titre: 'Conteneur débordant',
+    categorie: 'dechets',
+    description: 'Plein depuis des jours.',
+    photo: null,
+    latitude: 14.72,
+    longitude: -17.46,
+    statut: 'en_cours',
+    dateCreation: '2026-09-19T08:00:00.000Z',
+  },
+];
+
+/** Service factice : enregistre les criteres recus et renvoie une page. */
+class ServiceFactice {
+  criteres: CriteresRecherche[] = [];
+  echoue = false;
+  creations = 0;
+
+  async lister(criteres: CriteresRecherche = {}): Promise<PageSignalements> {
+    this.criteres.push(criteres);
+    if (this.echoue) {
+      throw new Error('Le serveur est injoignable.');
+    }
+    return { total: SIGNALEMENTS.length, limit: 20, offset: 0, data: SIGNALEMENTS };
+  }
+
+  async creer(): Promise<Signalement> {
+    this.creations += 1;
+    return SIGNALEMENTS[0];
+  }
+}
 
 describe('SignalementsPage', () => {
   let component: SignalementsPage;
   let fixture: ComponentFixture<SignalementsPage>;
+  let service: ServiceFactice;
 
-  /** Attend la fin du chargement initial, qui est asynchrone. */
-  const attendreChargement = async (): Promise<void> => {
-    creer();
-    await TestBed.inject(SignalementService).lister();
-    await fixture.whenStable();
-    fixture.detectChanges();
-  };
-
-  /**
-   * Cree le composant. Appele depuis le corps du test et non depuis un
-   * beforeEach : le lanceur attend entre les hooks, ce qui viderait la file
-   * de microtaches et ferait disparaitre l'etat de chargement avant qu'on
-   * puisse l'observer.
-   */
-  const creer = (): void => {
+  const creer = (echoue = false): void => {
+    service = new ServiceFactice();
+    service.echoue = echoue;
     TestBed.configureTestingModule({
-      // Pas de latence decorative dans les tests.
-      providers: [provideRouter([]), { provide: LATENCE_LECTURE_MS, useValue: 0 }],
+      providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
     });
     fixture = TestBed.createComponent(SignalementsPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
   };
 
-  it('should create', () => {
-    creer();
-
-    expect(component).toBeTruthy();
-  });
+  const attendreChargement = async (): Promise<void> => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   it('demarre en chargement et affiche trois silhouettes', () => {
-    // Aucun await entre la creation et l'assertion : on observe l'etat
-    // avant que la lecture ne resolve.
+    // Aucun await : on observe l'etat avant que la lecture ne resolve.
     creer();
 
     expect(component.chargement()).toBe(true);
     expect(fixture.nativeElement.querySelectorAll('app-carte-squelette').length).toBe(3);
   });
 
-  it('charge les signalements dans le signal une fois le chargement fini', async () => {
+  it('affiche ce que le serveur renvoie', async () => {
+    creer();
     await attendreChargement();
 
     expect(component.chargement()).toBe(false);
-    expect(component.signalements().length).toBe(3);
+    expect(component.signalements().length).toBe(2);
+    expect(component.total()).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('app-signalement-card').length).toBe(2);
   });
 
-  it('affiche tout tant qu aucun filtre n est actif', async () => {
+  it('delegue la recherche au serveur plutot que de filtrer la page recue', async () => {
+    creer();
     await attendreChargement();
-
-    expect(component.filtresActifs()).toBe(false);
-    expect(component.signalementsAffiches().length).toBe(3);
-  });
-
-  it('filtre par statut, plusieurs statuts a la fois', async () => {
-    await attendreChargement();
-    component.basculerStatut('nouveau');
-    component.basculerStatut('resolu');
-
-    const statuts = component.signalementsAffiches().map((s) => s.statut);
-    expect(statuts).toContain('nouveau');
-    expect(statuts).toContain('resolu');
-    expect(statuts).not.toContain('en_cours');
-  });
-
-  it('une famille de filtres vide signifie toutes les valeurs', async () => {
-    await attendreChargement();
-    component.basculerStatut('nouveau');
-    component.basculerStatut('nouveau');
-
-    expect(component.signalementsAffiches().length).toBe(3);
-  });
-
-  it('croise categorie et statut', async () => {
-    await attendreChargement();
-    component.basculerCategorie('voirie');
-    component.basculerStatut('resolu');
-
-    expect(component.signalementsAffiches().length).toBe(0);
-  });
-
-  it('recherche sans tenir compte des accents ni de la casse', async () => {
-    await attendreChargement();
-    component.surRecherche('ECLAIRAGE');
-
-    expect(component.signalementsAffiches().length).toBe(0);
 
     component.surRecherche('lampadaire');
-    expect(component.signalementsAffiches().length).toBe(1);
+    await attendreChargement();
 
-    component.surRecherche('debordant');
-    expect(component.signalementsAffiches()[0].id).toBe('sig-002');
+    expect(service.criteres.at(-1)?.q).toBe('lampadaire');
+  });
+
+  it('delegue le filtre de statut au serveur', async () => {
+    creer();
+    await attendreChargement();
+
+    component.basculerStatut('nouveau');
+    await attendreChargement();
+
+    expect(service.criteres.at(-1)?.statut).toBe('nouveau');
+  });
+
+  it('un second appui sur l etiquette active retire le filtre', async () => {
+    creer();
+    await attendreChargement();
+
+    component.basculerCategorie('voirie');
+    await attendreChargement();
+    expect(service.criteres.at(-1)?.categorie).toBe('voirie');
+
+    component.basculerCategorie('voirie');
+    await attendreChargement();
+    expect(service.criteres.at(-1)?.categorie).toBeUndefined();
   });
 
   it('reinitialise recherche et filtres d un coup', async () => {
+    creer();
     await attendreChargement();
     component.surRecherche('lampadaire');
     component.basculerCategorie('voirie');
+    await attendreChargement();
 
     component.reinitialiserFiltres();
+    await attendreChargement();
 
     expect(component.filtresActifs()).toBe(false);
-    expect(component.signalementsAffiches().length).toBe(3);
+    expect(service.criteres.at(-1)).toEqual({
+      q: undefined,
+      categorie: undefined,
+      statut: undefined,
+    });
   });
 
   it('ne remplace pas une liste deja affichee par des silhouettes', async () => {
+    creer();
     await attendreChargement();
 
-    // Un tire-pour-actualiser relance le chargement, mais le contenu doit
-    // rester a l'ecran : les silhouettes sont reservees au premier acces.
     const rechargement = component.charger();
     fixture.detectChanges();
 
     expect(component.chargement()).toBe(true);
     expect(component.chargementInitial()).toBe(false);
     expect(fixture.nativeElement.querySelectorAll('app-carte-squelette').length).toBe(0);
-    expect(fixture.nativeElement.querySelectorAll('app-signalement-card').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('app-signalement-card').length).toBe(2);
 
     await rechargement;
+  });
+
+  it('affiche un etat d erreur plutot qu une liste vide quand la lecture echoue', async () => {
+    creer(true);
+    await attendreChargement();
+
+    expect(component.erreurBloquante()).toBe(true);
+    expect(component.chargement()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Chargement impossible');
+  });
+
+  it('rend la main au refresher meme si la lecture echoue', async () => {
+    creer(true);
+    let complete = 0;
+
+    await component.rafraichir({
+      detail: { complete: () => (complete += 1) },
+    } as unknown as Parameters<SignalementsPage['rafraichir']>[0]);
+
+    expect(complete).toBe(1);
   });
 
   it('previent au-dela de dix secondes que la connexion semble lente', async () => {
     vi.useFakeTimers();
     try {
+      service = new ServiceFactice();
+      // Une lecture qui n'aboutit pas dans la fenetre observee.
+      service.lister = () => new Promise(() => undefined);
       TestBed.configureTestingModule({
-        providers: [
-          provideRouter([]),
-          // Une lecture qui n'aboutit pas dans la fenetre observee.
-          { provide: LATENCE_LECTURE_MS, useValue: 60_000 },
-        ],
+        providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
       });
       fixture = TestBed.createComponent(SignalementsPage);
       component = fixture.componentInstance;
@@ -153,58 +200,5 @@ describe('SignalementsPage', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('affiche un etat d erreur plutot qu une liste vide quand la lecture echoue', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        {
-          provide: SignalementService,
-          useValue: { lister: () => Promise.reject(new Error('reseau')) },
-        },
-      ],
-    });
-    fixture = TestBed.createComponent(SignalementsPage);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(component.erreurBloquante()).toBe(true);
-    expect(component.chargement()).toBe(false);
-    expect(fixture.nativeElement.textContent).toContain('Chargement impossible');
-  });
-
-  it('rend la main au refresher meme si la lecture echoue', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        {
-          provide: SignalementService,
-          useValue: { lister: () => Promise.reject(new Error('reseau')) },
-        },
-      ],
-    });
-    fixture = TestBed.createComponent(SignalementsPage);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    let complete = 0;
-    // Sans le finally de rafraichir(), complete() ne serait jamais appele et
-    // l'indicateur tournerait indefiniment.
-    await component.rafraichir({
-      detail: { complete: () => (complete += 1) },
-    } as unknown as Parameters<SignalementsPage['rafraichir']>[0]);
-
-    expect(complete).toBe(1);
-  });
-
-  it('rend une carte par signalement affiche', async () => {
-    await attendreChargement();
-
-    const cartes = fixture.nativeElement.querySelectorAll('app-signalement-card');
-    expect(cartes.length).toBe(component.signalementsAffiches().length);
   });
 });

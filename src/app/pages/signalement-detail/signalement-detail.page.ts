@@ -1,19 +1,39 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import {
   IonBackButton,
   IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
+  IonSpinner,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { bulb, calendar, construct, ellipsisHorizontal, location, trash, water } from 'ionicons/icons';
+import {
+  alertCircle,
+  bulb,
+  calendar,
+  construct,
+  ellipsisHorizontal,
+  location,
+  trash,
+  water,
+} from 'ionicons/icons';
 
 import {
   CategorieSignalement,
   LIBELLES_CATEGORIE,
+  Signalement,
 } from '../../core/models/signalement.model';
 import {
   formaterCoordonnees,
@@ -46,6 +66,7 @@ const SEUIL_REPLI = 180;
     IonTitle,
     IonContent,
     IonIcon,
+    IonSpinner,
     StatutChipComponent,
   ],
 })
@@ -55,9 +76,12 @@ export class SignalementDetailPage {
   /** Parametre `:id` de la route, lie automatiquement par le routeur. */
   readonly id = input.required<string>();
 
-  readonly signalement = computed(() => this.signalementService.trouver(this.id()));
-
+  readonly signalement = signal<Signalement | undefined>(undefined);
+  readonly chargement = signal(true);
+  readonly erreur = signal<string | null>(null);
   readonly descriptionDepliee = signal(false);
+
+  private detruit = false;
 
   readonly categorie = computed(() => {
     const signalement = this.signalement();
@@ -66,7 +90,9 @@ export class SignalementDetailPage {
 
   readonly icone = computed(() => {
     const signalement = this.signalement();
-    return signalement ? ICONE_CATEGORIE[signalement.categorie] : 'ellipsis-horizontal';
+    return signalement
+      ? ICONE_CATEGORIE[signalement.categorie]
+      : 'ellipsis-horizontal';
   });
 
   readonly date = computed(() => {
@@ -86,11 +112,58 @@ export class SignalementDetailPage {
     () => (this.signalement()?.description.length ?? 0) > SEUIL_REPLI,
   );
 
-  deplierDescription(): void {
-    this.descriptionDepliee.set(true);
+  constructor() {
+    addIcons({
+      construct,
+      trash,
+      bulb,
+      water,
+      ellipsisHorizontal,
+      calendar,
+      location,
+      alertCircle,
+    });
+    inject(DestroyRef).onDestroy(() => (this.detruit = true));
+
+    // Recharge des que l'identifiant de route change : le composant est
+    // reutilise par Ionic quand on navigue d'un detail a un autre.
+    effect(() => {
+      const id = this.id();
+      void this.charger(id);
+    });
   }
 
-  constructor() {
-    addIcons({ construct, trash, bulb, water, ellipsisHorizontal, calendar, location });
+  async charger(id: string): Promise<void> {
+    this.chargement.set(true);
+    this.erreur.set(null);
+    this.descriptionDepliee.set(false);
+
+    try {
+      const signalement = await this.signalementService.trouver(Number(id));
+      if (!this.detruit) {
+        this.signalement.set(signalement);
+      }
+    } catch (erreur) {
+      if (!this.detruit) {
+        this.signalement.set(undefined);
+        this.erreur.set(
+          erreur instanceof Error
+            ? erreur.message
+            : 'Le signalement n\'a pas pu être chargé.',
+        );
+      }
+    } finally {
+      if (!this.detruit) {
+        this.chargement.set(false);
+      }
+    }
+  }
+
+  reessayer(): void {
+    void this.charger(this.id());
+  }
+
+  deplierDescription(): void {
+    this.descriptionDepliee.set(true);
   }
 }

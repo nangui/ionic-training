@@ -8,7 +8,12 @@
 </ion-header>
 
 <ion-content>
-  @if (signalement(); as signalement) {
+  @if (chargement()) {
+    <div class="etat" role="status">
+      <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+      <p class="etat__texte">Chargement du signalement…</p>
+    </div>
+  } @else if (signalement(); as signalement) {
     <article class="detail">
       <!-- Le titre complet est toujours visible ici, jamais tronqué. -->
       <h1 class="detail__titre">{{ signalement.titre }}</h1>
@@ -55,11 +60,11 @@
       </section>
     </article>
   } @else {
-    <div class="introuvable">
-      <h1 class="introuvable__titre">Signalement introuvable</h1>
-      <p class="introuvable__texte">
-        La référence « {{ id() }} » ne correspond à aucun signalement.
-      </p>
+    <div class="etat">
+      <ion-icon class="etat__icone" name="alert-circle" aria-hidden="true"></ion-icon>
+      <h1 class="etat__titre">Signalement indisponible</h1>
+      <p class="etat__texte">{{ erreur() }}</p>
+      <button class="bouton-contour" type="button" (click)="reessayer()">Réessayer</button>
     </div>
   }
 </ion-content>

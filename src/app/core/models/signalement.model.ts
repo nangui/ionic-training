@@ -32,24 +32,50 @@ export const LIBELLES_STATUT: Record<StatutSignalement, string> = {
 
 /** Un signalement remonte par un citoyen. */
 export interface Signalement {
-  id: string;
+  /** Identifiant numerique attribue par l'API. */
+  id: number;
   titre: string;
   description: string;
   categorie: CategorieSignalement;
   statut: StatutSignalement;
   /**
-   * Photo encodee en data URI base64 (`data:image/jpeg;base64,...`).
+   * Photo encodee en data URI base64 (`data:image/jpeg;base64,...`), ou
+   * `null` quand il n'y en a pas - c'est ce que renvoie l'API.
    * Ne jamais y stocker le `webPath` de @capacitor/camera : c'est une URL blob
    * qui ne survit pas au redemarrage de l'application.
    */
-  photo?: string;
+  photo: string | null;
   latitude: number;
   longitude: number;
   /**
-   * Date de creation au format ISO 8601 (`new Date().toISOString()`).
+   * Date de creation au format ISO 8601, telle que l'API la renvoie.
    * Volontairement une chaine et non un `Date` : le modele transite par
-   * JSON.stringify/parse (Preferences, localStorage, API) ou un `Date`
-   * reviendrait en `string` sans que TypeScript ne le signale.
+   * JSON, ou un `Date` reviendrait en `string` sans que TypeScript ne le
+   * signale.
    */
   dateCreation: string;
+}
+
+/** Ce que l'API attend pour creer un signalement. */
+export type SignalementCreation = Pick<
+  Signalement,
+  'titre' | 'categorie' | 'description' | 'latitude' | 'longitude'
+> &
+  Partial<Pick<Signalement, 'photo' | 'statut'>>;
+
+/** Reponse paginee de `GET /signalements`. */
+export interface PageSignalements {
+  total: number;
+  limit: number;
+  offset: number;
+  data: Signalement[];
+}
+
+/** Criteres acceptes par `GET /signalements`. */
+export interface CriteresRecherche {
+  q?: string;
+  categorie?: CategorieSignalement;
+  statut?: StatutSignalement;
+  limit?: number;
+  offset?: number;
 }

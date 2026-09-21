@@ -1,97 +1,106 @@
-import { InjectionToken, Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
-import { Signalement } from '../models/signalement.model';
+import { environment } from '../../../environments/environment';
+import {
+  CriteresRecherche,
+  PageSignalements,
+  Signalement,
+  SignalementCreation,
+} from '../models/signalement.model';
 
-/**
- * Jeu de donnees en dur, servant de source unique tant qu'il n'y a pas
- * de backend. Les dates sont figees pour que l'affichage reste
- * deterministe d'un lancement a l'autre (et dans les tests).
- */
-const SIGNALEMENTS_DEMO: readonly Signalement[] = [
-  {
-    id: 'sig-001',
-    titre: 'Nid-de-poule avenue de la République',
-    description:
-      "Trou d'environ 40 cm sur la voie de droite, juste avant le feu. Plusieurs deux-roues ont été déviés.",
-    categorie: 'voirie',
-    statut: 'nouveau',
-    latitude: 48.8674,
-    longitude: 2.3792,
-    dateCreation: '2026-09-19T08:42:00.000Z',
-  },
-  {
-    id: 'sig-002',
-    titre: 'Conteneur à verre débordant',
-    description:
-      'Le conteneur est plein depuis plusieurs jours, les bouteilles sont posées au sol autour du point de collecte.',
-    categorie: 'dechets',
-    statut: 'en_cours',
-    latitude: 48.8712,
-    longitude: 2.3641,
-    dateCreation: '2026-09-17T17:05:00.000Z',
-  },
-  {
-    id: 'sig-003',
-    titre: 'Lampadaire éteint rue des Cascades',
-    description:
-      "Trois lampadaires consécutifs ne s'allument plus le soir, le trottoir est complètement sombre.",
-    categorie: 'eclairage',
-    statut: 'resolu',
-    latitude: 48.8719,
-    longitude: 2.3869,
-    dateCreation: '2026-09-12T20:18:00.000Z',
-  },
-];
+/** Erreur metier remontee aux ecrans, deja traduite en francais. */
+export class ErreurApi extends Error {
+  constructor(
+    message: string,
+    readonly statut: number,
+  ) {
+    super(message);
+    this.name = 'ErreurApi';
+  }
+}
+
+/** Traduit une erreur HTTP en message affichable. */
+function traduire(erreur: unknown): ErreurApi {
+  if (!(erreur instanceof HttpErrorResponse)) {
+    return new ErreurApi('Une erreur inattendue est survenue.', 0);
+  }
+  // Statut 0 : la requete n'est jamais partie (pas de reseau, DNS, CORS).
+  if (erreur.status === 0) {
+    return new ErreurApi('Le serveur est injoignable.', 0);
+  }
+  if (erreur.status === 404) {
+    return new ErreurApi('Ce signalement n\'existe pas ou plus.', 404);
+  }
+  // L'API renvoie { erreur: "..." } ; on prefere son message au notre.
+  const message =
+    typeof erreur.error?.erreur === 'string'
+      ? erreur.error.erreur
+      : 'Le serveur a refusé la demande.';
+  return new ErreurApi(message, erreur.status);
+}
 
 /**
- * Latence simulee de la lecture.
+ * Acces aux signalements via l'API de formation.
  *
- * PLACEHOLDER : represente l'aller-retour reseau a venir. Sans elle les
- * etats de chargement (squelettes, message de connexion lente) seraient du
- * code mort, jamais parcouru. A supprimer le jour ou un vrai appel HTTP
- * prend sa place.
- *
- * Injectable pour que les tests la ramenent a zero : une suite n'a aucune
- * raison de payer un delai decoratif.
- */
-export const LATENCE_LECTURE_MS = new InjectionToken<number>('latence de lecture', {
-  providedIn: 'root',
-  factory: () => 600,
-});
-
-/**
- * Acces aux signalements.
- *
- * Aucune requete HTTP a ce stade : les donnees sont en dur et copiees a
- * chaque lecture, pour qu'un appelant qui mute le resultat ne corrompe
- * pas la source. La lecture est neanmoins asynchrone, parce qu'elle le sera
- * toujours une fois branchee sur un backend : autant que les ecrans soient
- * ecrits pour ca des maintenant.
+ * Le filtrage, la recherche et la pagination sont delegues au serveur : lui
+ * seul connait l'ensemble des donnees, filtrer la page recue cote client
+ * donnerait des resultats faux des que la liste depasse une page.
  */
 @Injectable({ providedIn: 'root' })
 export class SignalementService {
-  private readonly latence = inject(LATENCE_LECTURE_MS);
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/signalements`;
 
-  /** Tous les signalements, du plus recent au plus ancien. */
-  async lister(): Promise<Signalement[]> {
-    if (this.latence > 0) {
-      await new Promise((resoudre) => setTimeout(resoudre, this.latence));
+  /** Une page de signalements, filtree et paginee par le serveur. */
+  async lister(criteres: CriteresRecherche = {}): Promise<PageSignalements> {
+    let parametres = new HttpParams();
+    for (const [cle, valeur] of Object.entries(criteres)) {
+      if (valeur !== undefined && valeur !== '') {
+        parametres = parametres.set(cle, String(valeur));
+      }
     }
-    return this.listerSynchrone();
+
+    try {
+      return await firstValueFrom(
+        this.http.get<PageSignalements>(this.base, { params: parametres }),
+      );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
   }
 
-  /** Meme lecture, sans latence : utilisee par le detail et les tests. */
-  listerSynchrone(): Signalement[] {
-    // Tri lexicographique direct : les dates sont des ISO 8601, donc leur
-    // ordre alphabetique est leur ordre chronologique.
-    return SIGNALEMENTS_DEMO.map((signalement) => ({ ...signalement })).sort(
-      (a, b) => (a.dateCreation < b.dateCreation ? 1 : -1),
-    );
+  /** Un signalement par son identifiant. */
+  async trouver(id: number): Promise<Signalement> {
+    try {
+      return await firstValueFrom(
+        this.http.get<Signalement>(`${this.base}/${id}`),
+      );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
   }
 
-  /** Un signalement par son identifiant, ou `undefined` s'il n'existe pas. */
-  trouver(id: string): Signalement | undefined {
-    const trouve = SIGNALEMENTS_DEMO.find((signalement) => signalement.id === id);
-    return trouve ? { ...trouve } : undefined;
+  /** Cree un signalement et renvoie celui que l'API a enregistre. */
+  async creer(brouillon: SignalementCreation): Promise<Signalement> {
+    try {
+      return await firstValueFrom(
+        this.http.post<Signalement>(this.base, brouillon),
+      );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
+  }
+
+  /** Restaure le jeu de donnees initial du participant. */
+  async reinitialiser(): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.post<unknown>(`${environment.apiUrl}/reset`, {}),
+      );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
   }
 }

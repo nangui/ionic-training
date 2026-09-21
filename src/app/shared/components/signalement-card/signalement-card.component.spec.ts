@@ -5,11 +5,12 @@ import { Signalement } from '../../../core/models/signalement.model';
 import { SignalementCardComponent } from './signalement-card.component';
 
 const SIGNALEMENT: Signalement = {
-  id: 'sig-test',
+  id: 42,
   titre: 'Banc cassé square Jean Moulin',
   description: 'Deux lattes arrachées.',
   categorie: 'voirie',
   statut: 'en_cours',
+  photo: null,
   latitude: 48.87,
   longitude: 2.37,
   dateCreation: '2026-09-18T09:30:00.000Z',
@@ -30,7 +31,7 @@ describe('SignalementCardComponent', () => {
     const lien = fixture.nativeElement.querySelector('a.carte');
 
     expect(lien).toBeTruthy();
-    expect(lien.getAttribute('href')).toBe('/tabs/signalements/sig-test');
+    expect(lien.getAttribute('href')).toBe('/tabs/signalements/42');
   });
 
   it('annonce titre, statut, categorie et date d un seul tenant', () => {
