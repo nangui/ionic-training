@@ -28,6 +28,14 @@
   filter: brightness(0.92);
 }
 
+// En attente d'envoi : aucun retour d'appui, la carte n'est pas tactile.
+.carte--inerte,
+.carte--inerte:active {
+  transform: none;
+  filter: none;
+  border-style: dashed;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .carte:active {
     transform: none;

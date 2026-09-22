@@ -40,6 +40,7 @@ Dernière mise à jour : 2026-09-21 — régénérer avec `npm ls --depth=0` apr
 | `@capacitor/camera` | 8.2.4 |
 | `@capacitor/geolocation` | 8.2.2 |
 | `@capacitor/network` | 8.0.1 |
+| `@capacitor/preferences` | 8.0.1 |
 | `@capacitor/status-bar` | 8.0.3 |
 
 Configuration (`capacitor.config.ts`) : `appId: io.ionic.starter`,

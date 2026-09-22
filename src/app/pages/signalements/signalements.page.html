@@ -14,8 +14,11 @@
   </ion-toolbar>
 
   <!-- Ordre de lecture : en-tête, bannière hors-ligne, filtres, liste, FAB. -->
-  @if (!enLigne()) {
-    <app-banniere-hors-ligne />
+  @if (!enLigne() || nombreEnAttente() > 0) {
+    <app-banniere-hors-ligne
+      [horsLigne]="!enLigne()"
+      [enAttente]="nombreEnAttente()"
+    />
   }
 </ion-header>
 
@@ -37,16 +40,12 @@
     horizontal="end"
     [class.fab-principal--masque]="!fabVisible()"
   >
-    <ion-fab-button
-      [disabled]="!enLigne()"
-      [attr.aria-label]="
-        enLigne()
-          ? 'Créer un signalement'
-          : 'Création indisponible : appareil hors ligne'
-      "
-      (click)="ouvrirCreation()"
-    >
-      <ion-icon [name]="enLigne() ? 'add' : 'cloud-offline'" aria-hidden="true"></ion-icon>
+    <!-- Actif meme hors ligne : le signalement est enregistre sur
+         l'appareil et partira au retour du reseau. Refuser la creation
+         reviendrait a demander a l'utilisateur de revenir plus tard
+         devant le nid-de-poule. -->
+    <ion-fab-button aria-label="Créer un signalement" (click)="ouvrirCreation()">
+      <ion-icon name="add" aria-hidden="true"></ion-icon>
     </ion-fab-button>
   </ion-fab>
 
@@ -62,6 +61,40 @@
         (statutBascule)="basculerStatut($event)"
       />
     </div>
+
+    @if (mentionCache()) {
+      <p class="cache" role="status">
+        {{ mentionCache() }} · les modifications récentes n'y figurent peut-être pas
+      </p>
+    }
+
+    @if (cartesEnAttente().length > 0) {
+      <ul class="liste liste--attente">
+        @for (carte of cartesEnAttente(); track carte.entree.id) {
+          <li>
+            <app-signalement-card
+              [signalement]="carte.signalement"
+              [mention]="
+                carte.entree.etat === 'echec'
+                  ? 'Envoi impossible'
+                  : 'En attente d\'envoi'
+              "
+            />
+            @if (carte.entree.etat === 'echec') {
+              <p class="attente__echec" role="alert">{{ carte.entree.motifEchec }}</p>
+              <div class="attente__actions">
+                <button class="bouton-contour" type="button" (click)="reessayerEnvoi(carte.entree)">
+                  Réessayer
+                </button>
+                <button class="bouton-contour" type="button" (click)="abandonnerEnvoi(carte.entree)">
+                  Abandonner
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
 
     @if (erreurBloquante()) {
       <!-- Echec avec un ecran vide : on explique et on propose la reprise,
@@ -115,7 +148,7 @@
       @if (toutCharge() && total() > 0) {
         <p class="total">{{ total() }} signalement{{ total() > 1 ? 's' : '' }}</p>
       }
-    } @else {
+    } @else if (listeVide()) {
       <!-- L'état vide est hors de la liste : un lecteur d'écran n'annoncerait
            pas « liste, 1 élément » là où il n'y a aucun signalement. -->
       <div class="vide">

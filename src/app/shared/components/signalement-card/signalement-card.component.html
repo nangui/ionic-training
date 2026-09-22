@@ -1,11 +1,12 @@
-<!-- routerDirection="forward" : sans lui, Ionic ne sait pas dans quel sens
-     animer et la transition vers le detail n'a pas lieu. -->
-<a
-  class="carte"
-  [routerLink]="lien()"
-  routerDirection="forward"
-  [attr.aria-label]="resume()"
->
+@if (lien(); as cible) {
+  <!-- routerDirection="forward" : sans lui, Ionic ne sait pas dans quel sens
+       animer et la transition vers le detail n'a pas lieu. -->
+  <a
+    class="carte"
+    [routerLink]="cible"
+    routerDirection="forward"
+    [attr.aria-label]="resume()"
+  >
   <span class="vignette" aria-hidden="true">
     @if (signalement().photo; as photo) {
       <img class="vignette__image" [src]="photo" alt="" />
@@ -22,6 +23,30 @@
 
     <span class="corps__titre">{{ signalement().titre }}</span>
 
-    <span class="corps__date">{{ date() }}</span>
+    <span class="corps__date">{{ mention() ?? date() }}</span>
   </span>
-</a>
+  </a>
+} @else {
+  <!-- Pas encore sur le serveur : rien a ouvrir, donc pas de lien. Une
+       carte qui a l'air tactile sans l'etre est pire que rien. -->
+  <div class="carte carte--inerte" [attr.aria-label]="resume()" role="group">
+  <span class="vignette" aria-hidden="true">
+    @if (signalement().photo; as photo) {
+      <img class="vignette__image" [src]="photo" alt="" />
+    } @else {
+      <ion-icon class="vignette__icone" [name]="icone()"></ion-icon>
+    }
+  </span>
+
+  <span class="corps">
+    <span class="corps__haut">
+      <app-statut-chip [statut]="signalement().statut" />
+      <span class="corps__categorie">{{ categorie() }}</span>
+    </span>
+
+    <span class="corps__titre">{{ signalement().titre }}</span>
+
+    <span class="corps__date">{{ mention() ?? date() }}</span>
+  </span>
+  </div>
+}

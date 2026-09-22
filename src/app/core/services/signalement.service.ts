@@ -3,8 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { PreferencesService } from './preferences.service';
-import { ReseauService } from './reseau.service';
 import {
   CriteresRecherche,
   PageSignalements,
@@ -54,8 +52,6 @@ function traduire(erreur: unknown): ErreurApi {
 @Injectable({ providedIn: 'root' })
 export class SignalementService {
   private readonly http = inject(HttpClient);
-  private readonly preferences = inject(PreferencesService);
-  private readonly reseau = inject(ReseauService);
   private readonly base = `${environment.apiUrl}/signalements`;
 
   /** Une page de signalements, filtree et paginee par le serveur. */
@@ -89,10 +85,6 @@ export class SignalementService {
 
   /** Cree un signalement et renvoie celui que l'API a enregistre. */
   async creer(brouillon: SignalementCreation): Promise<Signalement> {
-    // Verifie ici et non dans chaque ecran : c'est le point d'ecriture
-    // unique, et les deux appelants affichent deja le message d'erreur.
-    this.verifierPolitiqueEnvoi();
-
     try {
       return await firstValueFrom(
         this.http.post<Signalement>(this.base, brouillon),
@@ -129,25 +121,6 @@ export class SignalementService {
     } catch (erreur) {
       throw traduire(erreur);
     }
-  }
-
-  /**
-   * Refuse l'envoi si l'utilisateur a demande le Wi-Fi seul et qu'on est
-   * sur autre chose. Le reglage sert a epargner un forfait de donnees : le
-   * respecter silencieusement serait pire que de le dire.
-   */
-  private verifierPolitiqueEnvoi(): void {
-    if (!this.preferences.envoiWifiSeulement()) {
-      return;
-    }
-    const type = this.reseau.typeConnexion();
-    if (type === 'wifi' || type === 'unknown') {
-      return;
-    }
-    throw new ErreurApi(
-      'Envoi en Wi-Fi uniquement : connectez-vous à un réseau Wi-Fi, ou désactivez ce réglage.',
-      0,
-    );
   }
 
   /** Restaure le jeu de donnees initial du participant. */

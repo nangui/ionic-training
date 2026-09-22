@@ -41,8 +41,15 @@ const ICONE_CATEGORIE: Record<CategorieSignalement, string> = {
 export class SignalementCardComponent {
   readonly signalement = input.required<Signalement>();
 
-  /** Cible de navigation, fournie par l'ecran appelant. */
-  readonly lien = input.required<unknown[]>();
+  /**
+   * Cible de navigation. Absente pour un signalement en attente d'envoi :
+   * il n'existe pas encore cote serveur, il n'a donc pas de detail a
+   * ouvrir. La carte cesse alors d'etre un lien.
+   */
+  readonly lien = input<unknown[] | undefined>(undefined);
+
+  /** Mention affichee a la place de la date, ex. « En attente d'envoi ». */
+  readonly mention = input<string | undefined>(undefined);
 
   readonly categorie = computed(
     () => LIBELLES_CATEGORIE[this.signalement().categorie],

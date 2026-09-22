@@ -118,6 +118,35 @@ Deux pièges documentés dans le fichier, qui ont coûté cher :
    `:root.ion-palette-dark`. Ce n'est pas une redondance : Ionic contient un
    bloc `.ion-palette-dark.md` de spécificité supérieure qui gagnerait sinon.
 
+## Mode hors-ligne
+
+Le parcours ne s'interrompt pas quand le réseau disparaît.
+
+**Création.** Un signalement créé hors ligne est enregistré sur l'appareil
+(`@capacitor/preferences`, et non `localStorage` — que le système peut vider
+quand l'espace manque) puis envoyé au retour du réseau. Il apparaît en tête de
+liste avec la mention « En attente d'envoi », sur une carte volontairement non
+cliquable : il n'existe pas encore côté serveur, il n'a pas de détail à ouvrir.
+
+**Lecture.** Quand la lecture échoue, la liste est servie depuis le dernier
+instantané connu, **avec sa date**. Sans cette date, l'utilisateur croirait
+consulter l'état courant — c'est la différence entre « hors ligne » et « faux ».
+Seule la liste non filtrée est mise en cache : la servir en réponse à un filtre
+ferait croire que tout y correspond.
+
+**Doublons.** `POST /signalements` n'est pas idempotent et l'API n'accepte
+aucune clé d'idempotence. Si la requête atteint le serveur mais que la réponse
+se perd, un réessai créerait un second signalement identique. La politique est
+donc volontairement prudente :
+
+| Situation | Décision |
+| --- | --- |
+| Statut 0 — la requête n'est jamais partie | Le serveur n'a rien vu, le réessai est sûr. L'entrée reste en file. |
+| Toute réponse reçue, y compris 4xx/5xx | Le serveur a peut-être enregistré. L'entrée passe en échec, l'utilisateur décide. |
+
+Le jour où l'API acceptera une clé d'idempotence, le second cas pourra devenir
+un réessai automatique.
+
 ## API
 
 Documentée par OpenAPI : [`/openapi.json`](https://setal-api-formation-production.up.railway.app/openapi.json)

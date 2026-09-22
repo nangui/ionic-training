@@ -9,7 +9,7 @@ import {
   ToastController,
 } from '@ionic/angular';
 
-import { SignalementService } from '../../core/services/signalement.service';
+import { FileEnvoiService } from '../../core/services/file-envoi.service';
 import {
   BrouillonSignalement,
   FormulaireSignalementComponent,
@@ -27,19 +27,22 @@ export class NouveauPage {
   // Router, le retour a la liste se fait par un saut sec.
   private readonly navController = inject(NavController);
   private readonly toastController = inject(ToastController);
-  private readonly signalementService = inject(SignalementService);
+  private readonly fileEnvoi = inject(FileEnvoiService);
 
   private readonly formulaire = viewChild(FormulaireSignalementComponent);
 
   async enregistrer(brouillon: BrouillonSignalement): Promise<void> {
     try {
-      const cree = await this.signalementService.creer(brouillon);
+      const resultat = await this.fileEnvoi.soumettre(brouillon);
       this.formulaire()?.terminerEnvoi();
       const toast = await this.toastController.create({
-        message: `« ${cree.titre} » a été envoyé.`,
-        duration: 2000,
+        message:
+          resultat === 'envoye'
+            ? `« ${brouillon.titre} » a été envoyé.`
+            : `« ${brouillon.titre} » est enregistré et partira dès le retour du réseau.`,
+        duration: 3000,
         position: 'bottom',
-        color: 'success',
+        color: resultat === 'envoye' ? 'success' : 'warning',
       });
       await toast.present();
       await this.navController.navigateBack('/tabs/signalements');

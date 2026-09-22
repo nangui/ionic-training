@@ -35,6 +35,33 @@ ion-content {
   margin-bottom: var(--app-space-4);
 }
 
+.cache {
+  margin: 0 0 var(--app-space-3);
+  padding: var(--app-space-2) var(--app-space-3);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-status-encours-bg);
+  color: var(--app-color-status-encours-on-bg);
+  font-size: var(--app-font-meta);
+  line-height: 1.4;
+}
+
+.liste--attente {
+  margin-bottom: var(--app-space-4);
+}
+
+.attente__echec {
+  margin: var(--app-space-2) 0 0;
+  color: var(--app-color-danger);
+  font-size: var(--app-font-meta);
+  line-height: 1.4;
+}
+
+.attente__actions {
+  display: flex;
+  gap: var(--app-space-2);
+  margin-top: var(--app-space-2);
+}
+
 .total {
   margin: var(--app-space-4) 0 0;
   color: var(--app-color-text-muted);

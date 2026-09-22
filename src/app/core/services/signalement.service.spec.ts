@@ -8,8 +8,6 @@ import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
 import { Signalement } from '../models/signalement.model';
 import { ErreurApi, SignalementService } from './signalement.service';
-import { PreferencesService } from './preferences.service';
-import { ReseauService } from './reseau.service';
 import { traineeInterceptor } from './trainee.interceptor';
 
 const BASE = `${environment.apiUrl}/signalements`;
@@ -124,27 +122,6 @@ describe('SignalementService', () => {
 
     requete.flush(null);
     await promesse;
-  });
-
-  it('refuse l envoi hors Wi-Fi quand le reglage le demande', async () => {
-    TestBed.inject(PreferencesService).envoiWifiSeulement.set(true);
-    // Le service reseau rapporte une connexion cellulaire.
-    Object.defineProperty(TestBed.inject(ReseauService), 'typeConnexion', {
-      value: () => 'cellular',
-    });
-
-    await expect(
-      service.creer({
-        titre: 'Test',
-        categorie: 'autre',
-        description: 'Test',
-        latitude: 0,
-        longitude: 0,
-      }),
-    ).rejects.toThrow(/Wi-Fi/);
-
-    // Aucune requete ne doit etre partie.
-    http.expectNone(BASE);
   });
 
   it('traduit un 404 en message lisible', async () => {

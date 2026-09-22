@@ -38,6 +38,10 @@ import {
   Signalement,
   StatutSignalement,
 } from '../../core/models/signalement.model';
+import { SignalementEnAttente } from '../../core/models/file-envoi.model';
+import { formaterDateCourte } from '../../core/models/signalement.format';
+import { CacheSignalementsService } from '../../core/services/cache-signalements.service';
+import { FileEnvoiService } from '../../core/services/file-envoi.service';
 import { ReseauService } from '../../core/services/reseau.service';
 import { SignalementService } from '../../core/services/signalement.service';
 import { BanniereHorsLigneComponent } from '../../shared/components/banniere-hors-ligne/banniere-hors-ligne.component';
@@ -102,6 +106,8 @@ export class SignalementsPage implements ViewWillEnter {
   private readonly signalementService = inject(SignalementService);
   private readonly reseauService = inject(ReseauService);
   private readonly toastController = inject(ToastController);
+  private readonly fileEnvoi = inject(FileEnvoiService);
+  private readonly cache = inject(CacheSignalementsService);
 
   /** Etat de la liste. */
   readonly signalements = signal<Signalement[]>([]);
@@ -111,6 +117,18 @@ export class SignalementsPage implements ViewWillEnter {
   readonly erreur = signal(false);
 
   readonly enLigne = this.reseauService.enLigne;
+
+  /** Signalements crees hors ligne, pas encore partis. */
+  readonly enAttente = this.fileEnvoi.enAttente;
+  readonly nombreEnAttente = this.fileEnvoi.nombreEnAttente;
+
+  /** Date du cache quand la liste affichee n'est pas fraiche. */
+  readonly dateCacheServi = this.cache.dateServie;
+
+  readonly mentionCache = computed(() => {
+    const date = this.dateCacheServi();
+    return date ? `Liste du ${formaterDateCourte(date)}` : '';
+  });
 
   readonly recherche = signal('');
   // Une seule valeur par famille : `GET /signalements` n'accepte qu'une
@@ -179,6 +197,23 @@ export class SignalementsPage implements ViewWillEnter {
    * connait l'ensemble des donnees.
    */
   readonly signalementsAffiches = computed(() => this.signalements());
+
+  /**
+   * Ce qui attend d'etre envoye, rendu affichable et place en tete.
+   * En tete parce que c'est ce que l'utilisateur vient de faire : le voir
+   * disparaitre serait interpreter comme une perte.
+   */
+  readonly cartesEnAttente = computed(() =>
+    this.enAttente().map((entree, rang) => ({
+      entree,
+      signalement: this.fileEnvoi.enSignalement(entree, rang),
+    })),
+  );
+
+  /** Vrai quand il n'y a vraiment rien a montrer, file comprise. */
+  readonly listeVide = computed(
+    () => this.signalementsAffiches().length === 0 && this.enAttente().length === 0,
+  );
 
   constructor() {
     addIcons({ add, alertCircle, checkmarkCircle, cloudOffline });
@@ -249,13 +284,20 @@ export class SignalementsPage implements ViewWillEnter {
       if (this.estCourante(lecture)) {
         this.signalements.set(page.data);
         this.total.set(page.total);
+        this.cache.marquerServi(null);
+        // Seule la liste non filtree est mise en cache : remettre en cache
+        // une liste filtree ferait croire, au retour, que le reste a disparu.
+        if (!this.filtresActifs()) {
+          await this.cache.enregistrer(page.data, page.total);
+        }
       }
     } catch (erreur) {
       if (this.estCourante(lecture)) {
-        this.erreur.set(true);
+        const servi = await this.servirDepuisCache();
+        this.erreur.set(!servi);
         // La liste deja affichee reste a l'ecran : un echec de
         // rafraichissement ne doit pas effacer ce que l'utilisateur lisait.
-        if (this.signalements().length > 0) {
+        if (!servi && this.signalements().length > 0) {
           await this.signalerEchec();
         }
       }
@@ -292,6 +334,36 @@ export class SignalementsPage implements ViewWillEnter {
     } finally {
       await evenement.target.complete();
     }
+  }
+
+  /**
+   * Sert le dernier instantane connu. Renvoie faux s'il n'y en a pas, ou si
+   * un filtre est actif : le cache ne contient que la liste complete, le
+   * servir en reponse a un filtre donnerait un resultat faux.
+   */
+  private async servirDepuisCache(): Promise<boolean> {
+    if (this.filtresActifs()) {
+      return false;
+    }
+    const cache = await this.cache.lire();
+    if (!cache) {
+      return false;
+    }
+    this.signalements.set(cache.signalements);
+    this.total.set(cache.total);
+    this.cache.marquerServi(cache.dateCache);
+    return true;
+  }
+
+  /** Relance l'envoi d'une entree en echec. */
+  async reessayerEnvoi(entree: SignalementEnAttente): Promise<void> {
+    await this.fileEnvoi.reessayer(entree.id);
+    await this.charger();
+  }
+
+  /** Abandonne une entree apres confirmation implicite de l'utilisateur. */
+  async abandonnerEnvoi(entree: SignalementEnAttente): Promise<void> {
+    await this.fileEnvoi.abandonner(entree.id);
   }
 
   private criteresCourants(): CriteresRecherche {
@@ -375,16 +447,21 @@ export class SignalementsPage implements ViewWillEnter {
 
   async enregistrer(brouillon: BrouillonSignalement): Promise<void> {
     try {
-      const cree = await this.signalementService.creer(brouillon);
+      const resultat = await this.fileEnvoi.soumettre(brouillon);
       this.fermerCreation();
-      // Relecture plutot qu'insertion locale : le serveur decide de l'ordre
-      // et des champs qu'il a completes (id, statut, dateCreation).
-      await this.charger();
+      if (resultat === 'envoye') {
+        // Relecture plutot qu'insertion locale : le serveur decide de
+        // l'ordre et des champs qu'il a completes.
+        await this.charger();
+      }
       const toast = await this.toastController.create({
-        message: `« ${cree.titre} » a été envoyé.`,
-        duration: 2000,
+        message:
+          resultat === 'envoye'
+            ? `« ${brouillon.titre} » a été envoyé.`
+            : `« ${brouillon.titre} » est enregistré et partira dès le retour du réseau.`,
+        duration: 3000,
         position: 'bottom',
-        color: 'success',
+        color: resultat === 'envoye' ? 'success' : 'warning',
       });
       await toast.present();
     } catch (erreur) {

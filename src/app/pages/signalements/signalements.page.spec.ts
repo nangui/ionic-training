@@ -6,6 +6,7 @@ import {
   PageSignalements,
   Signalement,
 } from '../../core/models/signalement.model';
+import { PLUGIN_STOCKAGE, PluginStockage } from '../../core/services/stockage.service';
 import { SignalementService } from '../../core/services/signalement.service';
 import { SEUIL_CONNEXION_LENTE_MS, SignalementsPage } from './signalements.page';
 
@@ -42,6 +43,26 @@ const page = (titre: string): PageSignalements => ({
   data: [{ ...SIGNALEMENTS[0], titre }],
 });
 
+/**
+ * Stockage en memoire : sans lui, les tests partagent le stockage reel et
+ * un cache ecrit par un test ferait passer le suivant pour la mauvaise
+ * raison.
+ */
+const stockageFactice = (): PluginStockage => {
+  const memoire = new Map<string, string>();
+  return {
+    get: ({ key }) => Promise.resolve({ value: memoire.get(key) ?? null }),
+    set: ({ key, value }) => {
+      memoire.set(key, value);
+      return Promise.resolve();
+    },
+    remove: ({ key }) => {
+      memoire.delete(key);
+      return Promise.resolve();
+    },
+  };
+};
+
 /** Service factice : enregistre les criteres recus et renvoie une page. */
 class ServiceFactice {
   criteres: CriteresRecherche[] = [];
@@ -71,7 +92,11 @@ describe('SignalementsPage', () => {
     service = new ServiceFactice();
     service.echoue = echoue;
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: service },
+        { provide: PLUGIN_STOCKAGE, useValue: stockageFactice() },
+      ],
     });
     fixture = TestBed.createComponent(SignalementsPage);
     component = fixture.componentInstance;
@@ -83,6 +108,9 @@ describe('SignalementsPage', () => {
   };
 
   const attendreChargement = async (): Promise<void> => {
+    // Une macrotache vide la file des microtaches : la lecture, puis le
+    // cache lu ou ecrit derriere elle, chacun ajoutant son propre maillon.
+    await new Promise((resoudre) => setTimeout(resoudre, 0));
     await fixture.whenStable();
     fixture.detectChanges();
   };
@@ -201,6 +229,75 @@ describe('SignalementsPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Chargement impossible');
   });
 
+  it('sert le dernier instantane connu quand la lecture echoue', async () => {
+    // Un stockage partage entre les deux constructions : le premier passage
+    // met en cache, le second echoue et doit retomber dessus.
+    const stockage = stockageFactice();
+    const reussi = new ServiceFactice();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: reussi },
+        { provide: PLUGIN_STOCKAGE, useValue: stockage },
+      ],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.ionViewWillEnter();
+    await attendreChargement();
+    expect(component.signalements().length).toBe(2);
+
+    TestBed.resetTestingModule();
+    const casse = new ServiceFactice();
+    casse.echoue = true;
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: casse },
+        { provide: PLUGIN_STOCKAGE, useValue: stockage },
+      ],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.ionViewWillEnter();
+    await attendreChargement();
+
+    // Une liste datee vaut mieux qu'un ecran vide, a condition de dire
+    // qu'elle est datee.
+    expect(component.signalements().length).toBe(2);
+    expect(component.erreurBloquante()).toBe(false);
+    expect(component.mentionCache()).toContain('Liste du');
+  });
+
+  it('ne sert pas le cache en reponse a un filtre : le resultat serait faux', async () => {
+    const stockage = stockageFactice();
+    const reussi = new ServiceFactice();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: reussi },
+        { provide: PLUGIN_STOCKAGE, useValue: stockage },
+      ],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.ionViewWillEnter();
+    await attendreChargement();
+
+    reussi.echoue = true;
+    component.basculerCategorie('voirie');
+    await attendreChargement();
+
+    // Le cache contient la liste complete : la servir en reponse a un
+    // filtre ferait croire que tout y correspond. On signale l'erreur, et
+    // surtout on n'affiche aucune mention de cache.
+    expect(component.erreur()).toBe(true);
+    expect(component.mentionCache()).toBe('');
+  });
+
   it('rend la main au refresher meme si la lecture echoue', async () => {
     creer(true);
     let complete = 0;
@@ -226,7 +323,11 @@ describe('SignalementsPage', () => {
         : Promise.resolve({ ...page(titre) });
     };
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: service },
+        { provide: PLUGIN_STOCKAGE, useValue: stockageFactice() },
+      ],
     });
     fixture = TestBed.createComponent(SignalementsPage);
     component = fixture.componentInstance;
