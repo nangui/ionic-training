@@ -1,0 +1,121 @@
+// Motifs partages par plusieurs ecrans.
+//
+// Regroupes ici plutot que recopies dans chaque page : l'en-tete etait
+// duplique a l'identique dans quatre fichiers, et les boutons dans trois.
+// Styles globaux et non encapsules, c'est leur raison d'etre.
+
+// ----- En-tete d'ecran -----
+.en-tete ion-toolbar {
+  // Pas de translucidite : le flou delave le titre en pleine lumiere.
+  --background: var(--app-color-surface);
+  --color: var(--app-color-text);
+  --border-width: 0 0 1px 0;
+  --border-color: var(--app-color-border);
+  --padding-start: 0;
+  --padding-end: var(--app-space-2);
+  --min-height: 56px;
+}
+
+.en-tete ion-title {
+  // Le retrait vient du titre lui-meme et non de la barre : en mode iOS,
+  // ion-title est sorti du flux pour rester centre, donc le --padding-start
+  // de la barre ne l'atteint pas.
+  padding-inline: var(--app-space-4);
+  text-align: start;
+  font-size: var(--app-font-title);
+  font-weight: var(--app-font-title-weight);
+}
+
+// L'ecran de detail fait exception : sa barre porte un bouton retour, et un
+// titre force a gauche se poserait dessus en iOS. On y laisse la convention
+// de la plateforme.
+.en-tete--retour ion-title {
+  padding-inline: 0;
+  text-align: inherit;
+}
+
+// ----- Action secondaire d'en-tete -----
+.action-secondaire {
+  --color: var(--app-color-primary);
+  --padding-start: var(--app-space-3);
+  --padding-end: var(--app-space-3);
+  min-height: var(--app-touch-min);
+  font-size: var(--app-font-body);
+  font-weight: 600;
+}
+
+// ----- Boutons -----
+.bouton-contour {
+  min-height: var(--app-touch-min);
+  padding: 0 var(--app-space-4);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-surface);
+  color: var(--app-color-primary);
+  font-family: inherit;
+  font-size: var(--app-font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  width: 100%;
+  min-height: var(--app-touch-min);
+  border: 1px solid var(--app-color-danger);
+  border-radius: var(--app-radius-input);
+  background: var(--app-color-surface);
+  color: var(--app-color-danger);
+  font-family: inherit;
+  font-size: var(--app-font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bouton-contour[disabled],
+.bouton-danger[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+// ----- Etiquette selectionnable -----
+// Filtres de la liste et choix de statut du detail : meme objet visuel.
+.etiquette-choix {
+  min-height: var(--app-touch-min);
+  padding-inline: var(--app-space-4);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-chip);
+  background: var(--app-color-surface);
+  color: var(--app-color-text);
+  font-family: inherit;
+  font-size: var(--app-font-chip);
+  font-weight: var(--app-font-chip-weight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 100ms ease-in-out;
+}
+
+.etiquette-choix:active {
+  filter: brightness(0.92);
+}
+
+// L'etat actif ne repose pas que sur la couleur : le fond s'inverse,
+// lisible en plein soleil comme en niveaux de gris.
+.etiquette-choix--active {
+  border-color: var(--app-color-primary);
+  background: var(--app-color-primary);
+  color: var(--app-color-primary-contrast);
+}
+
+.etiquette-choix:focus-visible {
+  outline: 2px solid var(--app-color-primary);
+  outline-offset: 2px;
+}
+
+.etiquette-choix[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -102,6 +102,28 @@ describe('SignalementService', () => {
     expect((await promesse).id).toBe(99);
   });
 
+  it('modifie en n envoyant que les champs concernes', async () => {
+    const promesse = service.modifier(31, { statut: 'resolu' });
+    const requete = http.expectOne(`${BASE}/31`);
+
+    // PATCH et non PUT : on n'ecrase pas le reste avec des valeurs perimees.
+    expect(requete.request.method).toBe('PATCH');
+    expect(requete.request.body).toEqual({ statut: 'resolu' });
+
+    requete.flush({ ...SIGNALEMENT, statut: 'resolu' });
+    expect((await promesse).statut).toBe('resolu');
+  });
+
+  it('supprime un signalement', async () => {
+    const promesse = service.supprimer(31);
+    const requete = http.expectOne(`${BASE}/31`);
+
+    expect(requete.request.method).toBe('DELETE');
+
+    requete.flush(null);
+    await promesse;
+  });
+
   it('traduit un 404 en message lisible', async () => {
     const promesse = service.trouver(404);
     http

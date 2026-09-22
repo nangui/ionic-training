@@ -1,21 +1,5 @@
-.en-tete ion-title {
-  // Pas d'alignement force ici, contrairement aux autres ecrans : cette
-  // barre porte un bouton retour, et en mode iOS le titre est positionne
-  // en absolu a partir du bord. Le coller a gauche le ferait passer sous
-  // le bouton. On laisse donc Ionic appliquer la convention de la
-  // plateforme - centre sur iOS, a gauche sur Material.
-  font-size: var(--app-font-title);
-  font-weight: var(--app-font-title-weight);
-}
-
-.en-tete ion-toolbar {
-  --background: var(--app-color-surface);
-  --color: var(--app-color-text);
-  --border-width: 0 0 1px 0;
-  --border-color: var(--app-color-border);
-  --padding-end: var(--app-space-4);
-  --min-height: 56px;
-}
+// Detail d'un signalement. En-tete, boutons et etiquettes viennent de
+// theme/_composants.scss.
 
 ion-content {
   --background: var(--app-color-background);
@@ -86,6 +70,31 @@ ion-content {
 
 .section {
   margin-bottom: var(--app-space-6);
+}
+
+// ----- Changement de statut -----
+.statuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
+// Les trois choix se partagent la largeur : cibles plus larges, donc plus
+// faciles a viser d'une main.
+.statuts__choix {
+  flex: 1 1 auto;
+}
+
+// ----- Action destructive -----
+.zone-danger {
+  margin-top: var(--app-space-8);
+  padding-top: var(--app-space-6);
+  border-top: 1px solid var(--app-color-border);
+}
+
+.bouton-danger[disabled] {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .section__titre {
@@ -178,18 +187,4 @@ ion-content {
   color: var(--app-color-text-muted);
   font-size: var(--app-font-body);
   line-height: 1.5;
-}
-
-.bouton-contour {
-  min-height: var(--app-touch-min);
-  margin-top: var(--app-space-2);
-  padding: 0 var(--app-space-4);
-  border: 1px solid var(--app-color-border);
-  border-radius: var(--app-radius-input);
-  background: var(--app-color-surface);
-  color: var(--app-color-primary);
-  font-family: inherit;
-  font-size: var(--app-font-body);
-  font-weight: 600;
-  cursor: pointer;
 }

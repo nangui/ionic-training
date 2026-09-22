@@ -1,3 +1,7 @@
+/* Motifs partages par plusieurs ecrans : en-tete, boutons, etiquettes.
+   Doit rester en tete : @use precede toute autre regle. */
+@use 'theme/composants';
+
 /*
  * App Global CSS
  * ----------------------------------------------------------------------------

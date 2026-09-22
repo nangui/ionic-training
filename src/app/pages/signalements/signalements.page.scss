@@ -2,37 +2,7 @@
 // Contexte d'usage : dehors, en plein soleil, souvent a une main.
 // D'ou des contrastes eleves, des cibles tactiles >= 48px et l'action
 // principale en bas d'ecran, a portee du pouce.
-
-.en-tete ion-toolbar {
-  // Pas de translucidite : le flou delave le titre en pleine lumiere.
-  --background: var(--app-color-surface);
-  --color: var(--app-color-text);
-  --border-width: 0 0 1px 0;
-  --border-color: var(--app-color-border);
-  --padding-start: 0;
-  --padding-end: var(--app-space-2);
-  --min-height: 56px;
-}
-
-.en-tete ion-title {
-  // Le retrait vient du titre lui-meme et non de la barre : en mode iOS,
-  // ion-title est sorti du flux pour rester centre, donc le --padding-start
-  // de la barre ne l'atteint pas. Avec padding-inline: 0 il se collait au
-  // bord de l'ecran sur les quatre ecrans.
-  padding-inline: var(--app-space-4);
-  text-align: start;
-  font-size: var(--app-font-title);
-  font-weight: var(--app-font-title-weight);
-}
-
-.action-secondaire {
-  --color: var(--app-color-primary);
-  --padding-start: var(--app-space-3);
-  --padding-end: var(--app-space-3);
-  min-height: var(--app-touch-min);
-  font-size: var(--app-font-body);
-  font-weight: 600;
-}
+// En-tete, boutons et etiquettes viennent de theme/_composants.scss.
 
 ion-content {
   --background: var(--app-color-background);
@@ -133,22 +103,7 @@ ion-content {
   line-height: 1.5;
 }
 
-.bouton-contour {
-  min-height: var(--app-touch-min);
-  padding: 0 var(--app-space-4);
-  border: 1px solid var(--app-color-border);
-  border-radius: var(--app-radius-input);
-  background: var(--app-color-surface);
-  color: var(--app-color-primary);
-  font-family: inherit;
-  font-size: var(--app-font-body);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.vide .bouton-contour {
-  margin-top: var(--app-space-4);
-}
+.vide 
 
 // ----- Action principale -----
 .fab-principal {

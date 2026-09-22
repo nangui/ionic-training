@@ -63,6 +63,23 @@ export type SignalementCreation = Pick<
 > &
   Partial<Pick<Signalement, 'photo' | 'statut'>>;
 
+/**
+ * Ce que l'API accepte pour modifier un signalement.
+ * Tous les champs sont facultatifs : on n'envoie que ce qui change.
+ */
+export type SignalementModification = Partial<
+  Pick<
+    Signalement,
+    | 'titre'
+    | 'categorie'
+    | 'description'
+    | 'photo'
+    | 'latitude'
+    | 'longitude'
+    | 'statut'
+  >
+>;
+
 /** Reponse paginee de `GET /signalements`. */
 export interface PageSignalements {
   total: number;

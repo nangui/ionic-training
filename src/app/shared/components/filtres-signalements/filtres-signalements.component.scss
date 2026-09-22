@@ -1,3 +1,6 @@
+// Rangees d'etiquettes de filtre. L'apparence de l'etiquette elle-meme
+// vient de theme/_composants.scss, partagee avec le choix de statut.
+
 .filtres {
   display: flex;
   flex-direction: column;
@@ -30,39 +33,4 @@
     margin-inline: 0;
     padding-inline: 0;
   }
-}
-
-.etiquette {
-  flex: 0 0 auto;
-  // 48px de haut : une etiquette de filtre est une cible tactile comme une
-  // autre, y compris avec des gants ou en marchant.
-  min-height: var(--app-touch-min);
-  padding-inline: var(--app-space-4);
-  border: 1px solid var(--app-color-border);
-  border-radius: var(--app-radius-chip);
-  background: var(--app-color-surface);
-  color: var(--app-color-text);
-  font-family: inherit;
-  font-size: var(--app-font-chip);
-  font-weight: var(--app-font-chip-weight);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: filter 100ms ease-in-out;
-}
-
-.etiquette:active {
-  filter: brightness(0.92);
-}
-
-// L'etat actif ne repose pas que sur la couleur : la bordure s'epaissit et
-// le fond s'inverse, lisible en plein soleil comme en niveaux de gris.
-.etiquette--active {
-  border-color: var(--app-color-primary);
-  background: var(--app-color-primary);
-  color: var(--app-color-primary-contrast);
-}
-
-.etiquette:focus-visible {
-  outline: 2px solid var(--app-color-primary);
-  outline-offset: 2px;
 }

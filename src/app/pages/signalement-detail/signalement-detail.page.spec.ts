@@ -21,9 +21,13 @@ describe('SignalementDetailPage', () => {
   let fixture: ComponentFixture<SignalementDetailPage>;
   let component: SignalementDetailPage;
   let idsDemandes: number[];
+  let modifications: { id: number; champs: Record<string, unknown> }[];
+  let suppressions: number[];
 
   const creer = (reponse: () => Promise<Signalement>, id = '31'): void => {
     idsDemandes = [];
+    modifications = [];
+    suppressions = [];
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -33,6 +37,14 @@ describe('SignalementDetailPage', () => {
             trouver: (valeur: number) => {
               idsDemandes.push(valeur);
               return reponse();
+            },
+            modifier: (valeur: number, champs: Record<string, unknown>) => {
+              modifications.push({ id: valeur, champs });
+              return Promise.resolve({ ...SIGNALEMENT, ...champs });
+            },
+            supprimer: (valeur: number) => {
+              suppressions.push(valeur);
+              return Promise.resolve();
             },
           },
         },
@@ -79,6 +91,53 @@ describe('SignalementDetailPage', () => {
     expect(component.signalement()).toBeUndefined();
     expect(component.erreur()).toBe("Ce signalement n'existe pas ou plus.");
     expect(fixture.nativeElement.textContent).toContain("n'existe pas ou plus");
+  });
+
+  it('ne renvoie que le statut lors d un changement de statut', async () => {
+    creer(() => Promise.resolve(SIGNALEMENT));
+    await attendre();
+
+    await component.changerStatut('resolu');
+
+    expect(modifications).toEqual([{ id: 31, champs: { statut: 'resolu' } }]);
+    expect(component.signalement()?.statut).toBe('resolu');
+  });
+
+  it('n appelle pas l API si le statut choisi est deja le statut courant', async () => {
+    creer(() => Promise.resolve(SIGNALEMENT));
+    await attendre();
+
+    await component.changerStatut('nouveau');
+
+    expect(modifications).toEqual([]);
+  });
+
+  it('prepare le formulaire d edition avec les valeurs existantes', async () => {
+    creer(() => Promise.resolve(SIGNALEMENT));
+    await attendre();
+
+    expect(component.valeursEdition()).toEqual({
+      titre: SIGNALEMENT.titre,
+      categorie: SIGNALEMENT.categorie,
+      description: SIGNALEMENT.description,
+      photo: null,
+      latitude: SIGNALEMENT.latitude,
+      longitude: SIGNALEMENT.longitude,
+    });
+  });
+
+  it('ferme la modale et met a jour l affichage apres une edition', async () => {
+    creer(() => Promise.resolve(SIGNALEMENT));
+    await attendre();
+    component.ouvrirEdition();
+
+    await component.enregistrerEdition({
+      ...component.valeursEdition()!,
+      titre: 'Titre corrigé',
+    });
+
+    expect(component.editionOuverte()).toBe(false);
+    expect(component.signalement()?.titre).toBe('Titre corrigé');
   });
 
   it('permet de reessayer apres un echec', async () => {

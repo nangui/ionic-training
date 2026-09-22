@@ -140,7 +140,7 @@
         <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
         <span>Envoi…</span>
       } @else {
-        <span>Envoyer le signalement</span>
+        <span>{{ libelleEnvoi() }}</span>
       }
     </button>
     <button class="bouton bouton--texte" type="button" (click)="annule.emit()">Annuler</button>

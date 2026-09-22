@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { inject } from '@angular/core';
 import { IonIcon, IonSpinner } from '@ionic/angular';
@@ -29,6 +36,12 @@ export type BrouillonSignalement = SignalementCreation;
 export class FormulaireSignalementComponent {
   private readonly fb = inject(FormBuilder);
 
+  /** Valeurs de depart : renseignees en edition, vides en creation. */
+  readonly valeursInitiales = input<BrouillonSignalement | undefined>(undefined);
+
+  /** Libelle du bouton principal, qui differe selon le contexte. */
+  readonly libelleEnvoi = input('Envoyer le signalement');
+
   readonly envoye = output<BrouillonSignalement>();
   readonly annule = output<void>();
 
@@ -56,6 +69,27 @@ export class FormulaireSignalementComponent {
 
   constructor() {
     addIcons({ camera, close, locate, refresh });
+
+    effect(() => {
+      const valeurs = this.valeursInitiales();
+      if (!valeurs) {
+        return;
+      }
+      this.formulaire.patchValue({
+        titre: valeurs.titre,
+        categorie: valeurs.categorie,
+        description: valeurs.description,
+        latitude: valeurs.latitude,
+        longitude: valeurs.longitude,
+      });
+      this.photo.set(valeurs.photo ?? undefined);
+      if (valeurs.latitude !== 0 || valeurs.longitude !== 0) {
+        this.coordonnees.set(
+          formaterCoordonnees(valeurs.latitude, valeurs.longitude),
+        );
+        this.etatPosition.set('rempli');
+      }
+    });
   }
 
   /** Vrai si le champ doit afficher son erreur : invalide ET deja quitte. */

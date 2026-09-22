@@ -8,6 +8,7 @@ import {
   PageSignalements,
   Signalement,
   SignalementCreation,
+  SignalementModification,
 } from '../models/signalement.model';
 
 /** Erreur metier remontee aux ecrans, deja traduite en francais. */
@@ -88,6 +89,35 @@ export class SignalementService {
       return await firstValueFrom(
         this.http.post<Signalement>(this.base, brouillon),
       );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
+  }
+
+  /**
+   * Modifie un signalement existant.
+   *
+   * PATCH et non PUT : on envoie les seuls champs qui changent, ce qui evite
+   * d'ecraser avec des valeurs perimees ce qu'un autre aurait modifie
+   * entre-temps.
+   */
+  async modifier(
+    id: number,
+    modifications: SignalementModification,
+  ): Promise<Signalement> {
+    try {
+      return await firstValueFrom(
+        this.http.patch<Signalement>(`${this.base}/${id}`, modifications),
+      );
+    } catch (erreur) {
+      throw traduire(erreur);
+    }
+  }
+
+  /** Supprime un signalement. */
+  async supprimer(id: number): Promise<void> {
+    try {
+      await firstValueFrom(this.http.delete<unknown>(`${this.base}/${id}`));
     } catch (erreur) {
       throw traduire(erreur);
     }

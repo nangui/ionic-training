@@ -2,9 +2,9 @@
   <div class="filtres__rangee" role="group" aria-label="Filtrer par statut">
     @for (statut of tousStatuts; track statut) {
       <button
-        class="etiquette"
+        class="etiquette-choix"
         type="button"
-        [class.etiquette--active]="statutActif(statut)"
+        [class.etiquette-choix--active]="statutActif(statut)"
         [attr.aria-pressed]="statutActif(statut)"
         (click)="statutBascule.emit(statut)"
       >
@@ -16,9 +16,9 @@
   <div class="filtres__rangee" role="group" aria-label="Filtrer par catégorie">
     @for (categorie of toutesCategories; track categorie) {
       <button
-        class="etiquette"
+        class="etiquette-choix"
         type="button"
-        [class.etiquette--active]="categorieActive(categorie)"
+        [class.etiquette-choix--active]="categorieActive(categorie)"
         [attr.aria-pressed]="categorieActive(categorie)"
         (click)="categorieBasculee.emit(categorie)"
       >

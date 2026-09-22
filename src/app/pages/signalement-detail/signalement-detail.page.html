@@ -1,9 +1,23 @@
-<ion-header class="en-tete">
+<ion-header class="en-tete en-tete--retour">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/signalements" text="Retour"></ion-back-button>
     </ion-buttons>
     <ion-title>Détail</ion-title>
+
+    @if (signalement()) {
+      <ion-buttons slot="end">
+        <ion-button
+          class="action-secondaire"
+          fill="clear"
+          [disabled]="actionEnCours()"
+          (click)="ouvrirEdition()"
+        >
+          <ion-icon slot="start" name="create-outline" aria-hidden="true"></ion-icon>
+          Modifier
+        </ion-button>
+      </ion-buttons>
+    }
   </ion-toolbar>
 </ion-header>
 
@@ -48,6 +62,24 @@
       </section>
 
       <section class="section">
+        <h2 class="section__titre">Statut</h2>
+        <div class="statuts" role="group" aria-label="Changer le statut">
+          @for (statut of tousStatuts; track statut) {
+            <button
+              class="etiquette-choix statuts__choix"
+              type="button"
+              [class.etiquette-choix--active]="signalement.statut === statut"
+              [attr.aria-pressed]="signalement.statut === statut"
+              [disabled]="actionEnCours()"
+              (click)="changerStatut(statut)"
+            >
+              {{ libellesStatut[statut] }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="section">
         <h2 class="section__titre">Informations</h2>
         <dl class="infos">
           <dt class="infos__cle">Date</dt>
@@ -57,6 +89,20 @@
           <dt class="infos__cle">Référence</dt>
           <dd class="infos__valeur infos__valeur--nombres">{{ signalement.id }}</dd>
         </dl>
+      </section>
+
+      <!-- Action destructive isolee en bas, a l'ecart des commandes
+           courantes : on ne supprime pas par erreur en visant autre chose. -->
+      <section class="zone-danger">
+        <button
+          class="bouton-danger"
+          type="button"
+          [disabled]="actionEnCours()"
+          (click)="demanderSuppression()"
+        >
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+          Supprimer ce signalement
+        </button>
       </section>
     </article>
   } @else {
@@ -68,3 +114,27 @@
     </div>
   }
 </ion-content>
+
+<ion-modal [isOpen]="editionOuverte()" (ionModalDidDismiss)="fermerEdition()">
+  <ng-template>
+    <ion-header class="en-tete">
+      <ion-toolbar>
+        <ion-title>Modifier</ion-title>
+        <ion-buttons slot="end">
+          <ion-button class="action-secondaire" fill="clear" (click)="fermerEdition()">
+            Fermer
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <app-formulaire-signalement
+        [valeursInitiales]="valeursEdition()"
+        libelleEnvoi="Enregistrer les modifications"
+        (envoye)="enregistrerEdition($event)"
+        (annule)="fermerEdition()"
+      />
+    </ion-content>
+  </ng-template>
+</ion-modal>
