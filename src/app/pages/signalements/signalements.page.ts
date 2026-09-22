@@ -62,6 +62,7 @@ import {
   FormulaireSignalementComponent,
 } from '../../shared/components/formulaire-signalement/formulaire-signalement.component';
 import { CarteSignalementsComponent } from '../../shared/components/carte-signalements/carte-signalements.component';
+import { PointCarte } from '../../shared/components/carte-signalements/carte-signalements.model';
 import { SignalementCardComponent } from '../../shared/components/signalement-card/signalement-card.component';
 
 /** Amplitude de defilement au-dela de laquelle le bouton flottant s'efface. */
@@ -163,8 +164,18 @@ export class SignalementsPage implements ViewWillEnter {
 
   readonly modalOuvert = signal(false);
 
-  /** Liste ou carte. Le jeu de donnees affiche est le meme dans les deux. */
+  /** Liste ou carte. */
   readonly modeCarte = signal(false);
+
+  /**
+   * Points de la carte.
+   *
+   * Charges a part, et en totalite : la liste est paginee, or un point
+   * manquant sur une carte ne se percoit pas - contrairement a une liste
+   * tronquee, ou l'on sent qu'on cesse de defiler.
+   */
+  readonly pointsCarte = signal<PointCarte[]>([]);
+  readonly chargementCarte = signal(false);
 
   readonly squelettes = Array.from({ length: NOMBRE_SQUELETTES });
 
@@ -482,6 +493,53 @@ export class SignalementsPage implements ViewWillEnter {
 
   basculerMode(): void {
     this.modeCarte.update((carte) => !carte);
+  }
+
+  /**
+   * Recharge les points quand la carte est visible, et seulement alors :
+   * inutile de parcourir toutes les pages pour un ecran qu'on n'affiche pas.
+   */
+  private readonly chargeurCarte = effect(() => {
+    const criteres = {
+      q: this.recherche() || undefined,
+      categorie: this.categorieFiltree(),
+      statut: this.statutFiltre(),
+    };
+    const enAttente = this.enAttente();
+    if (!this.modeCarte()) {
+      return;
+    }
+    void this.chargerCarte(criteres, enAttente);
+  });
+
+  private async chargerCarte(
+    criteres: CriteresRecherche,
+    enAttente: readonly SignalementEnAttente[],
+  ): Promise<void> {
+    this.chargementCarte.set(true);
+    try {
+      const tous = await this.signalementService.listerTout(criteres);
+      if (this.detruit) {
+        return;
+      }
+      // Les signalements pas encore envoyes sont sur la carte comme dans la
+      // liste : deux vues du meme jeu doivent montrer le meme jeu.
+      this.pointsCarte.set([
+        ...enAttente.map((entree, rang) => ({
+          signalement: this.fileEnvoi.enSignalement(entree, rang),
+          ouvrable: false,
+        })),
+        ...tous.map((signalement) => ({ signalement, ouvrable: true })),
+      ]);
+    } catch {
+      if (!this.detruit) {
+        this.pointsCarte.set([]);
+      }
+    } finally {
+      if (!this.detruit) {
+        this.chargementCarte.set(false);
+      }
+    }
   }
 
   /** Un marqueur touche ouvre le detail, comme une carte de la liste. */

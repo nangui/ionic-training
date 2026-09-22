@@ -112,22 +112,32 @@
     }
 
     @if (modeCarte()) {
-      <!-- @defer : Leaflet et sa feuille de style ne sont pas telecharges
+      <!-- Au-dessus de la carte : sous une carte de 60dvh, l'avertissement
+           serait hors écran au moment où il servirait. -->
+      @if (!enLigne()) {
+        <p class="cache" role="status">
+          Hors ligne : le fond de carte ne peut pas être chargé, seuls les points sont
+          positionnés.
+        </p>
+      }
+
+      <!-- @defer : Leaflet et sa feuille de style ne sont pas téléchargés
            tant que l'utilisateur n'ouvre pas la carte. -->
       @defer (on immediate) {
         <app-carte-signalements
           class="carte-plein"
-          [signalements]="signalementsAffiches()"
+          [points]="pointsCarte()"
           (ouvrir)="ouvrirDepuisCarte($event)"
         />
       } @placeholder {
         <div class="carte-plein carte-plein--attente" role="status">Chargement de la carte…</div>
       }
 
-      @if (!enLigne()) {
-        <p class="cache" role="status">
-          Hors ligne : le fond de carte ne peut pas être chargé, seuls les points sont
-          positionnés.
+      @if (chargementCarte()) {
+        <p class="total" role="status">Chargement des points…</p>
+      } @else if (pointsCarte().length > 0) {
+        <p class="total">
+          {{ pointsCarte().length }} point{{ pointsCarte().length > 1 ? 's' : '' }} sur la carte
         </p>
       }
     } @else if (erreurBloquante()) {

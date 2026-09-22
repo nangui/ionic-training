@@ -72,6 +72,30 @@ export class SignalementService {
     }
   }
 
+  /**
+   * Toutes les pages, pour une vue qui ne peut pas paginer.
+   *
+   * La carte en a besoin : un point manquant n'y est pas percu, contrairement
+   * a une liste tronquee ou l'on sent qu'on cesse de defiler. Le plafond
+   * evite qu'un jeu de donnees inattendu ne fasse boucler l'application.
+   */
+  async listerTout(
+    criteres: CriteresRecherche = {},
+    plafond = 500,
+  ): Promise<Signalement[]> {
+    const taille = 100; // maximum accepte par l'API
+    const tout: Signalement[] = [];
+
+    for (let offset = 0; offset < plafond; offset += taille) {
+      const page = await this.lister({ ...criteres, limit: taille, offset });
+      tout.push(...page.data);
+      if (tout.length >= page.total || page.data.length === 0) {
+        break;
+      }
+    }
+    return tout;
+  }
+
   /** Un signalement par son identifiant. */
   async trouver(id: number): Promise<Signalement> {
     try {

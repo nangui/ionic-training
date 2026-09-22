@@ -1,7 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Signalement } from '../../../core/models/signalement.model';
-import { CarteSignalementsComponent, echapper } from './carte-signalements.component';
+import { CarteSignalementsComponent } from './carte-signalements.component';
+import { PointCarte } from './carte-signalements.model';
+
+const point = (id: number, ouvrable = true): PointCarte => ({
+  signalement: signalement(id),
+  ouvrable,
+});
 
 const signalement = (id: number): Signalement => ({
   id,
@@ -24,9 +30,9 @@ const signalement = (id: number): Signalement => ({
 describe('CarteSignalementsComponent', () => {
   let fixture: ComponentFixture<CarteSignalementsComponent>;
 
-  const creer = (signalements: Signalement[]): void => {
+  const creer = (points: PointCarte[]): void => {
     fixture = TestBed.createComponent(CarteSignalementsComponent);
-    fixture.componentRef.setInput('signalements', signalements);
+    fixture.componentRef.setInput('points', points);
     fixture.detectChanges();
   };
 
@@ -57,19 +63,28 @@ describe('CarteSignalementsComponent', () => {
   });
 });
 
-describe('echapper', () => {
-  it('neutralise le HTML d un titre saisi par l utilisateur', () => {
-    // Le contenu de l'infobulle est construit en HTML : un titre non
-    // echappe y serait interprete.
-    const resultat = echapper('<img src=x onerror=alert(1)>');
+describe('CarteSignalementsComponent : resume accessible', () => {
+  /**
+   * Lu sur le signal et non dans le DOM : afficher des marqueurs exige un
+   * canvas, que jsdom n'implemente pas. On evite donc la detection de
+   * changements, qui declencherait le dessin.
+   */
+  const resume = (points: PointCarte[]): string => {
+    const fixture = TestBed.createComponent(CarteSignalementsComponent);
+    fixture.componentRef.setInput('points', points);
+    return fixture.componentInstance.resumeAccessible();
+  };
 
-    expect(resultat).not.toContain('<img');
-    expect(resultat).toContain('&lt;img');
+  it('annonce le nombre de points et renvoie vers la vue liste', () => {
+    // Les marqueurs sont dans un canvas : invisibles aux lecteurs d'ecran.
+    // Ce resume est leur seule porte d'entree.
+    const texte = resume([point(1), point(2)]);
+
+    expect(texte).toContain('2 signalements');
+    expect(texte).toContain('vue liste');
   });
 
-  it('laisse le texte ordinaire intact', () => {
-    expect(echapper('Nid-de-poule avenue de la République')).toBe(
-      'Nid-de-poule avenue de la République',
-    );
+  it('le dit quand il n y a rien a afficher', () => {
+    expect(resume([])).toContain('sans signalement');
   });
 });

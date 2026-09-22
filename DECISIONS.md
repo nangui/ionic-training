@@ -148,6 +148,14 @@ Décisions qui accompagnent ce choix :
   et vit dans un composant *par conception*. C'est un seuil déplacé pour une
   feuille tierce, pas pour excuser notre propre CSS.
 
+**Le type `PointCarte` vit dans son propre fichier**, pas à côté du composant.
+L'importer depuis le fichier du composant crée une référence statique qui
+**annule le `@defer`** : Leaflet retombe dans le morceau de la page, sans
+erreur ni avertissement. Mesuré quand c'est arrivé : la page est passée de 8 à
+49 ko transférés, et le morceau différé a simplement disparu de la sortie de
+build. Aucun test ne garde ce point — seule la lecture des tailles de chunk le
+révèle.
+
 Attention : la [politique d'usage des tuiles
 OSM](https://operations.osmfoundation.org/policies/tiles/) exige l'attribution
 (elle est affichée) et interdit un usage massif en production. Pour une vraie
@@ -210,6 +218,26 @@ de l'injecteur partait en `Network.ngOnDestroy() is not implemented on web`.
 Deux lectures concurrentes : la plus lente arrivait en dernier et écrasait la
 plus récente. Chaque frappe dans la recherche pouvait afficher un résultat
 périmé. Chaque lecture porte désormais un numéro de séquence.
+
+### La carte : trois défauts de conception d'un coup
+
+Livrés ensemble, trouvés en relecture :
+
+1. **La carte affichait une page, pas les signalements.** Elle était branchée
+   sur la liste paginée. Un point manquant sur une carte ne se perçoit pas,
+   contrairement à une liste tronquée où l'on sent qu'on cesse de défiler.
+   Corrigé par `listerTout()`, qui parcourt les pages jusqu'au total.
+2. **Deux interactions sur le même geste.** `bindPopup` ouvrait l'infobulle et
+   un `on('click')` naviguait simultanément : l'infobulle n'était jamais
+   lisible. Or elle portait le libellé du statut — la règle « jamais la couleur
+   seule » n'était donc **pas** respectée sur la carte, alors que le commit
+   affirmait le contraire. L'infobulle est désormais seule à réagir, avec un
+   bouton « Ouvrir » explicite.
+3. **Recadrage à chaque rechargement.** `fitBounds` se rejouait dès que les
+   données changeaient, et `charger()` produit un nouveau tableau à chaque
+   entrée dans la vue. L'utilisateur perdait sa position dès qu'il revenait sur
+   l'onglet. Le cadrage ne se rejoue plus que si l'ensemble des identifiants
+   change.
 
 ### La boucle de réessai infinie
 

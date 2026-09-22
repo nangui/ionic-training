@@ -1,3 +1,8 @@
 <div class="carte-zone">
-  <div class="carte-zone__toile" #carte role="application" aria-label="Carte des signalements"></div>
+  <!-- Les marqueurs sont dessinés dans un canvas : ils n'existent pas dans le
+       DOM et sont donc invisibles aux lecteurs d'écran. Ce résumé les annonce
+       et renvoie vers la vue liste, qui est l'alternative accessible. -->
+  <p class="carte-zone__resume">{{ resumeAccessible() }}</p>
+
+  <div class="carte-zone__toile" #carte aria-hidden="true"></div>
 </div>

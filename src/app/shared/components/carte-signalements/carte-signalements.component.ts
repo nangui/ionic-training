@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   ViewEncapsulation,
+  computed,
   effect,
   inject,
   input,
@@ -23,6 +24,7 @@ import {
 
 import { LIBELLES_STATUT, Signalement } from '../../../core/models/signalement.model';
 import { formaterDateCourte } from '../../../core/models/signalement.format';
+import { PointCarte } from './carte-signalements.model';
 
 /** Dakar : centre de repli quand il n'y a aucun signalement a cadrer. */
 const CENTRE_DEFAUT: [number, number] = [14.7167, -17.4677];
@@ -39,6 +41,9 @@ const COULEUR_STATUT: Record<Signalement['statut'], string> = {
   en_cours: '#b45309',
   resolu: '#15803d',
 };
+
+/** Point pas encore envoye : neutre, il n'a pas de statut serveur. */
+const COULEUR_EN_ATTENTE = '#5b6b66';
 
 /**
  * Carte des signalements.
@@ -61,7 +66,16 @@ const COULEUR_STATUT: Record<Signalement['statut'], string> = {
   styleUrls: ['carte-signalements.component.scss'],
 })
 export class CarteSignalementsComponent {
-  readonly signalements = input.required<Signalement[]>();
+  readonly points = input.required<PointCarte[]>();
+
+  /** Annonce du contenu pour les lecteurs d'ecran. */
+  readonly resumeAccessible = computed(() => {
+    const nombre = this.points().length;
+    if (nombre === 0) {
+      return 'Carte sans signalement à afficher.';
+    }
+    return `Carte de ${nombre} signalement${nombre > 1 ? 's' : ''}. Les points ne sont pas lisibles par un lecteur d'écran : utilisez la vue liste, accessible par le bouton « Liste » en haut de l'écran.`;
+  });
 
   /** Emis quand l'utilisateur ouvre un signalement depuis la carte. */
   readonly ouvrir = output<Signalement>();
@@ -70,14 +84,16 @@ export class CarteSignalementsComponent {
 
   private carte?: CarteLeaflet;
   private marqueurs: CircleMarker[] = [];
+  /** Signature du jeu de points deja cadre, pour ne pas recadrer en boucle. */
+  private cadrage = '';
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.detruire());
 
     effect(() => {
-      const signalements = this.signalements();
+      const points = this.points();
       const element = this.conteneur().nativeElement;
-      this.dessiner(element, signalements);
+      this.dessiner(element, points);
     });
   }
 
@@ -91,62 +107,111 @@ export class CarteSignalementsComponent {
     this.carte?.invalidateSize();
   }
 
-  private dessiner(element: HTMLElement, signalements: Signalement[]): void {
-    if (!this.carte) {
-      // preferCanvas : les marqueurs sont dessines dans un seul canvas au
-      // lieu d'un element SVG chacun. La difference se voit des quelques
-      // centaines de points, et le cout est nul en dessous.
-      this.carte = new CarteLeaflet(element, { preferCanvas: true }).setView(
-        CENTRE_DEFAUT,
-        ZOOM_DEFAUT,
-      );
-      new TileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        // Attribution obligatoire : c'est la contrepartie de la politique
-        // d'usage des tuiles d'OpenStreetMap.
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(this.carte);
-
-      // Une carte creee pendant une transition de page peut mesurer ses
-      // dimensions trop tot et s'afficher en gris. Une passe au cadre
-      // suivant suffit a la recadrer.
-      requestAnimationFrame(() => this.carte?.invalidateSize());
-    }
+  private dessiner(element: HTMLElement, points: PointCarte[]): void {
+    const carte = this.carte ?? this.creerCarte(element);
 
     for (const marqueur of this.marqueurs) {
       marqueur.remove();
     }
-    this.marqueurs = signalements.map((signalement) => this.marqueur(signalement));
+    this.marqueurs = points.map((point) => this.marqueur(carte, point));
 
-    if (this.marqueurs.length > 0) {
+    // Le cadrage ne se rejoue que si l'ensemble des points a change.
+    // `charger()` produit une nouvelle instance de tableau a chaque entree
+    // dans la vue : recadrer a chaque fois arracherait la carte des mains
+    // d'un utilisateur qui vient de la deplacer.
+    const signature = points.map((p) => p.signalement.id).join(',');
+    if (points.length > 0 && signature !== this.cadrage) {
       const bornes = new LatLngBounds(
-        signalements.map((s) => [s.latitude, s.longitude] as [number, number]),
+        points.map(
+          (p) => [p.signalement.latitude, p.signalement.longitude] as [number, number],
+        ),
       );
-      this.carte.fitBounds(bornes, { padding: [32, 32], maxZoom: 16 });
+      carte.fitBounds(bornes, { padding: [32, 32], maxZoom: 16 });
+      this.cadrage = signature;
     }
   }
 
-  private marqueur(signalement: Signalement): CircleMarker {
+  private creerCarte(element: HTMLElement): CarteLeaflet {
+    // preferCanvas : les marqueurs sont dessines dans un seul canvas au
+    // lieu d'un element SVG chacun. La difference se voit des quelques
+    // centaines de points, et le cout est nul en dessous.
+    const carte = new CarteLeaflet(element, { preferCanvas: true }).setView(
+      CENTRE_DEFAUT,
+      ZOOM_DEFAUT,
+    );
+    new TileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      // Attribution obligatoire : c'est la contrepartie de la politique
+      // d'usage des tuiles d'OpenStreetMap.
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(carte);
+
+    // Une carte creee pendant une transition de page peut mesurer ses
+    // dimensions trop tot et s'afficher en gris. Une passe au cadre
+    // suivant suffit a la recadrer.
+    requestAnimationFrame(() => this.carte?.invalidateSize());
+
+    this.carte = carte;
+    return carte;
+  }
+
+  private marqueur(carte: CarteLeaflet, point: PointCarte): CircleMarker {
+    const { signalement, ouvrable } = point;
     const options: CircleMarkerOptions = {
       radius: 10,
       color: '#ffffff',
       weight: 2,
-      fillColor: COULEUR_STATUT[signalement.statut],
+      fillColor: ouvrable ? COULEUR_STATUT[signalement.statut] : COULEUR_EN_ATTENTE,
       fillOpacity: 1,
     };
-    const marqueur = new CircleMarker([signalement.latitude, signalement.longitude], options);
-
-    // Le libelle du statut est ecrit dans l'infobulle : la couleur du point
-    // ne porte jamais seule l'information.
-    marqueur.bindPopup(
-      `<strong>${echapper(signalement.titre)}</strong><br>` +
-        `${LIBELLES_STATUT[signalement.statut]} · ${formaterDateCourte(signalement.dateCreation)}<br>` +
-        `<em>Toucher le point pour ouvrir</em>`,
+    const marqueur = new CircleMarker(
+      [signalement.latitude, signalement.longitude],
+      options,
     );
-    marqueur.on('click', () => this.ouvrir.emit(signalement));
-    marqueur.addTo(this.carte!);
+
+    // Une infobulle, et elle seule, reagit au toucher. La version
+    // precedente ouvrait le detail dans le meme geste : l'infobulle
+    // apparaissait et l'ecran changeait, elle n'etait jamais lisible - et
+    // le libelle du statut qu'elle porte devenait inatteignable.
+    marqueur.bindPopup(() => this.infobulle(point));
+    marqueur.addTo(carte);
     return marqueur;
+  }
+
+  /**
+   * Contenu de l'infobulle, construit en DOM et non en chaine HTML : le
+   * titre vient de l'utilisateur et `textContent` le neutralise sans qu'on
+   * ait a y penser.
+   */
+  private infobulle(point: PointCarte): HTMLElement {
+    const { signalement, ouvrable } = point;
+    const contenu = document.createElement('div');
+    contenu.className = 'infobulle';
+
+    const titre = document.createElement('strong');
+    titre.textContent = signalement.titre;
+    contenu.append(titre);
+
+    // Le libelle du statut est ecrit : la couleur du point ne porte jamais
+    // seule l'information.
+    const meta = document.createElement('p');
+    meta.className = 'infobulle__meta';
+    meta.textContent = ouvrable
+      ? `${LIBELLES_STATUT[signalement.statut]} · ${formaterDateCourte(signalement.dateCreation)}`
+      : "En attente d'envoi";
+    contenu.append(meta);
+
+    if (ouvrable) {
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'infobulle__action';
+      bouton.textContent = 'Ouvrir le signalement';
+      bouton.addEventListener('click', () => this.ouvrir.emit(signalement));
+      contenu.append(bouton);
+    }
+
+    return contenu;
   }
 
   private detruire(): void {
@@ -156,15 +221,4 @@ export class CarteSignalementsComponent {
     this.carte = undefined;
     this.marqueurs = [];
   }
-}
-
-/**
- * Le titre vient de l'utilisateur : il ne doit pas etre interprete en HTML.
- * Exportee pour etre testable seule : le rendu des marqueurs passe par un
- * canvas, que jsdom n'implemente pas.
- */
-export function echapper(texte: string): string {
-  const element = document.createElement('div');
-  element.textContent = texte;
-  return element.innerHTML;
 }
