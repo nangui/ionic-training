@@ -138,8 +138,17 @@ export class SignalementDetailPage {
     this.erreur.set(null);
     this.descriptionDepliee.set(false);
 
+    const identifiant = Number(id);
+    if (!Number.isInteger(identifiant)) {
+      // Inutile d'interroger l'API avec un NaN : l'URL est deja invalide.
+      this.signalement.set(undefined);
+      this.erreur.set(`« ${id} » n'est pas une référence de signalement valide.`);
+      this.chargement.set(false);
+      return;
+    }
+
     try {
-      const signalement = await this.signalementService.trouver(Number(id));
+      const signalement = await this.signalementService.trouver(identifiant);
       if (!this.detruit) {
         this.signalement.set(signalement);
       }

@@ -91,6 +91,20 @@
 
     <ion-list class="bloc">
       <ion-list-header>
+        <ion-label>Données</ion-label>
+      </ion-list-header>
+
+      <ion-item lines="none" button="true" [disabled]="reinitialisationEnCours()" (click)="reinitialiser()">
+        <ion-icon slot="start" name="refresh" aria-hidden="true"></ion-icon>
+        <ion-label>
+          Restaurer le jeu initial
+          <ion-note>Remplace vos signalements par le jeu de départ</ion-note>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ion-list class="bloc">
+      <ion-list-header>
         <ion-label>À propos</ion-label>
       </ion-list-header>
 

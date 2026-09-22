@@ -1,4 +1,4 @@
-import { HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -135,21 +135,15 @@ describe('SignalementService', () => {
     await expect(promesse).rejects.toThrow('Le titre est obligatoire.');
   });
 
-  it('ne touche pas aux requetes hors API', async () => {
-    const autre = TestBed.inject(SignalementService);
-    expect(autre).toBeTruthy();
+  it('ne pose pas l en-tete d isolation sur les requetes hors API', () => {
+    // Une requete vers un autre domaine ne doit pas emporter le prenom du
+    // participant. La version precedente de ce test n'emettait aucune
+    // requete hors API : elle etait verte pour la mauvaise raison.
+    const client = TestBed.inject(HttpClient);
+    client.get('https://exemple.test/autre').subscribe({ error: () => undefined });
 
-    // Une requete vers un autre domaine ne doit pas porter l'en-tete.
-    const client = TestBed.inject(HttpTestingController);
-    void TestBed.runInInjectionContext(() => service.lister());
-    const requete = client.expectOne((r) => r.url === BASE);
-    expect(requete.request.headers.has('X-Trainee')).toBe(true);
-    requete.flush({ total: 0, limit: 20, offset: 0, data: [] });
-  });
-});
-
-describe('traduction des erreurs', () => {
-  it('couvre une erreur qui n est pas une reponse HTTP', () => {
-    expect(new HttpErrorResponse({ status: 500 }).status).toBe(500);
+    const requete = http.expectOne('https://exemple.test/autre');
+    expect(requete.request.headers.has('X-Trainee')).toBe(false);
+    requete.flush({});
   });
 });

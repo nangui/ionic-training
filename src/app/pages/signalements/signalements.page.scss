@@ -65,6 +65,13 @@ ion-content {
   margin-bottom: var(--app-space-4);
 }
 
+.total {
+  margin: var(--app-space-4) 0 0;
+  color: var(--app-color-text-muted);
+  font-size: var(--app-font-meta);
+  text-align: center;
+}
+
 .lenteur {
   display: flex;
   flex-direction: column;

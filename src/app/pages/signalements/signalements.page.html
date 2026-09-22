@@ -101,6 +101,20 @@
           </li>
         }
       </ul>
+
+      <!-- La page suivante est demandee 200px avant le bas, pour qu'elle
+           soit deja la quand l'utilisateur y arrive. -->
+      <ion-infinite-scroll
+        threshold="200px"
+        [disabled]="toutCharge()"
+        (ionInfinite)="chargerSuite($any($event))"
+      >
+        <ion-infinite-scroll-content loadingSpinner="crescent"></ion-infinite-scroll-content>
+      </ion-infinite-scroll>
+
+      @if (toutCharge() && total() > 0) {
+        <p class="total">{{ total() }} signalement{{ total() > 1 ? 's' : '' }}</p>
+      }
     } @else {
       <!-- L'état vide est hors de la liste : un lecteur d'écran n'annoncerait
            pas « liste, 1 élément » là où il n'y a aucun signalement. -->

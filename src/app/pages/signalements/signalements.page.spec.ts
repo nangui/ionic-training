@@ -34,6 +34,14 @@ const SIGNALEMENTS: Signalement[] = [
   },
 ];
 
+/** Construit une page d'un seul element, pour les scenarios de concurrence. */
+const page = (titre: string): PageSignalements => ({
+  total: 1,
+  limit: 20,
+  offset: 0,
+  data: [{ ...SIGNALEMENTS[0], titre }],
+});
+
 /** Service factice : enregistre les criteres recus et renvoie une page. */
 class ServiceFactice {
   criteres: CriteresRecherche[] = [];
@@ -137,11 +145,10 @@ describe('SignalementsPage', () => {
     await attendreChargement();
 
     expect(component.filtresActifs()).toBe(false);
-    expect(service.criteres.at(-1)).toEqual({
-      q: undefined,
-      categorie: undefined,
-      statut: undefined,
-    });
+    const dernier = service.criteres.at(-1);
+    expect(dernier?.q).toBeUndefined();
+    expect(dernier?.categorie).toBeUndefined();
+    expect(dernier?.statut).toBeUndefined();
   });
 
   it('ne remplace pas une liste deja affichee par des silhouettes', async () => {
@@ -177,6 +184,55 @@ describe('SignalementsPage', () => {
     } as unknown as Parameters<SignalementsPage['rafraichir']>[0]);
 
     expect(complete).toBe(1);
+  });
+
+  it('ignore une reponse lente rendue obsolete par une lecture plus recente', async () => {
+    let appel = 0;
+    service = new ServiceFactice();
+    service.lister = (criteres: CriteresRecherche = {}) => {
+      appel += 1;
+      service.criteres.push(criteres);
+      const titre = appel === 1 ? 'ANCIEN' : 'RECENT';
+      // La premiere lecture, correspondant au filtre abandonne, est la plus
+      // lente : sans garde de sequence elle ecraserait la seconde.
+      return appel === 1
+        ? new Promise((r) => setTimeout(() => r({ ...page(titre) }), 40))
+        : Promise.resolve({ ...page(titre) });
+    };
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
+    });
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.surRecherche('nouveau terme');
+    fixture.detectChanges();
+    await new Promise((r) => setTimeout(r, 120));
+
+    expect(component.signalements()[0].titre).toBe('RECENT');
+  });
+
+  it('demande la page suivante et l ajoute a la suite', async () => {
+    creer();
+    await attendreChargement();
+
+    let complete = 0;
+    await component.chargerSuite({
+      target: { complete: async () => void (complete += 1) },
+    } as unknown as Parameters<SignalementsPage['chargerSuite']>[0]);
+
+    // Le serveur est interroge a partir de ce qui est deja affiche.
+    expect(service.criteres.at(-1)?.offset).toBe(2);
+    expect(complete).toBe(1);
+  });
+
+  it('cesse de demander des pages une fois la liste complete', async () => {
+    creer();
+    await attendreChargement();
+
+    // Le service factice renvoie total = 2 et deux elements.
+    expect(component.toutCharge()).toBe(true);
   });
 
   it('previent au-dela de dix secondes que la connexion semble lente', async () => {

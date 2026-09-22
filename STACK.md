@@ -99,7 +99,7 @@ Backend de la formation, documenté par OpenAPI.
 | `POST /signalements` | Création |
 | `PATCH /signalements/{id}` | Modification (pas encore utilisé) |
 | `DELETE /signalements/{id}` | Suppression (pas encore utilisé) |
-| `POST /reset` | Restaure le jeu initial du participant |
+| `POST /reset` | Restaure le jeu initial du participant — bouton dans Réglages → Données |
 
 L'URL et le prénom envoyé dans `X-Trainee` vivent dans `src/environments/environment.ts`.
 

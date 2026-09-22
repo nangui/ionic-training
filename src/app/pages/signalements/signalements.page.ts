@@ -16,11 +16,14 @@ import {
   IonFabButton,
   IonHeader,
   IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
   IonModal,
   IonRefresher,
   IonRefresherContent,
   IonTitle,
   IonToolbar,
+  InfiniteScrollCustomEvent,
   RefresherCustomEvent,
   ScrollDetail,
   ToastController,
@@ -55,6 +58,9 @@ export const NOMBRE_SQUELETTES = 3;
 /** Duree au-dela de laquelle on previent que la connexion semble lente. */
 export const SEUIL_CONNEXION_LENTE_MS = 10_000;
 
+/** Taille d'une page. Aligne sur le defaut du serveur. */
+export const TAILLE_PAGE = 20;
+
 /** Retire les accents pour une recherche tolerante a la saisie. */
 function normaliser(texte: string): string {
   return texte
@@ -80,6 +86,8 @@ function normaliser(texte: string): string {
     IonRefresherContent,
     IonFab,
     IonFabButton,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
     IonModal,
     SignalementCardComponent,
     FormulaireSignalementComponent,
@@ -113,6 +121,11 @@ export class SignalementsPage {
   /** Nombre total cote serveur, tous filtres appliques. */
   readonly total = signal(0);
 
+  /** Vrai quand la liste affichee couvre tout ce que le serveur a. */
+  readonly toutCharge = computed(
+    () => this.signalements().length >= this.total(),
+  );
+
   /** Le bouton flottant s'efface quand on descend, revient quand on remonte. */
   readonly fabVisible = signal(true);
 
@@ -123,6 +136,15 @@ export class SignalementsPage {
   private readonly formulaire = viewChild(FormulaireSignalementComponent);
 
   private dernierDefilement = 0;
+  /**
+   * Numero de la derniere lecture lancee.
+   *
+   * Sans lui, une reponse lente correspondant a un filtre abandonne peut
+   * arriver apres une reponse rapide et ecraser la liste courante : on
+   * afficherait le resultat d'une recherche que l'utilisateur a deja
+   * remplacee.
+   */
+  private lectureCourante = 0;
   private minuteurLenteur?: ReturnType<typeof setTimeout>;
   private detruit = false;
 
@@ -183,11 +205,9 @@ export class SignalementsPage {
    * `complete()` et l'indicateur tournerait indefiniment.
    */
   async charger(criteres?: CriteresRecherche): Promise<void> {
-    const criteresEffectifs = criteres ?? {
-      q: this.recherche() || undefined,
-      categorie: this.categorieFiltree(),
-      statut: this.statutFiltre(),
-    };
+    const criteresEffectifs = criteres ?? this.criteresCourants();
+    const lecture = ++this.lectureCourante;
+
     this.chargement.set(true);
     this.connexionLente.set(false);
     this.erreur.set(false);
@@ -202,13 +222,17 @@ export class SignalementsPage {
     );
 
     try {
-      const page = await this.signalementService.lister(criteresEffectifs);
-      if (!this.detruit) {
+      const page = await this.signalementService.lister({
+        ...criteresEffectifs,
+        limit: TAILLE_PAGE,
+        offset: 0,
+      });
+      if (this.estCourante(lecture)) {
         this.signalements.set(page.data);
         this.total.set(page.total);
       }
-    } catch {
-      if (!this.detruit) {
+    } catch (erreur) {
+      if (this.estCourante(lecture)) {
         this.erreur.set(true);
         // La liste deja affichee reste a l'ecran : un echec de
         // rafraichissement ne doit pas effacer ce que l'utilisateur lisait.
@@ -217,12 +241,51 @@ export class SignalementsPage {
         }
       }
     } finally {
-      clearTimeout(this.minuteurLenteur);
-      if (!this.detruit) {
+      if (this.estCourante(lecture)) {
+        clearTimeout(this.minuteurLenteur);
         this.connexionLente.set(false);
         this.chargement.set(false);
       }
     }
+  }
+
+  /**
+   * Page suivante, ajoutee a la suite. Declenchee par le defilement, bien
+   * avant d'atteindre le bas de la liste.
+   */
+  async chargerSuite(evenement: InfiniteScrollCustomEvent): Promise<void> {
+    const lecture = this.lectureCourante;
+    try {
+      const page = await this.signalementService.lister({
+        ...this.criteresCourants(),
+        limit: TAILLE_PAGE,
+        offset: this.signalements().length,
+      });
+      // Un changement de filtre pendant la requete annule cette suite : elle
+      // appartient a une liste qui n'est plus affichee.
+      if (this.estCourante(lecture)) {
+        this.signalements.update((actuels) => [...actuels, ...page.data]);
+        this.total.set(page.total);
+      }
+    } catch {
+      // Silencieux : la liste deja affichee reste utilisable, et le
+      // defilement redeclenchera la tentative.
+    } finally {
+      await evenement.target.complete();
+    }
+  }
+
+  private criteresCourants(): CriteresRecherche {
+    return {
+      q: this.recherche() || undefined,
+      categorie: this.categorieFiltree(),
+      statut: this.statutFiltre(),
+    };
+  }
+
+  /** Faux si une lecture plus recente a ete lancee entre-temps. */
+  private estCourante(lecture: number): boolean {
+    return !this.detruit && lecture === this.lectureCourante;
   }
 
   /** Toast d'echec avec une action de reprise, quand du contenu est visible. */

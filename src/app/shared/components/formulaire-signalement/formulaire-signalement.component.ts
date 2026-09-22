@@ -5,6 +5,7 @@ import { IonIcon, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { camera, close, locate, refresh } from 'ionicons/icons';
 
+import { compresserImage } from '../../../core/models/image';
 import { formaterCoordonnees } from '../../../core/models/signalement.format';
 import {
   CATEGORIES_SIGNALEMENT,
@@ -79,15 +80,13 @@ export class FormulaireSignalementComponent {
     return '';
   }
 
-  /** Lit le fichier choisi et le stocke en data URI base64. */
-  choisirPhoto(evenement: Event): void {
+  /** Lit le fichier choisi, le compresse, et le stocke en data URI base64. */
+  async choisirPhoto(evenement: Event): Promise<void> {
     const fichier = (evenement.target as HTMLInputElement).files?.[0];
     if (!fichier) {
       return;
     }
-    const lecteur = new FileReader();
-    lecteur.onload = () => this.photo.set(lecteur.result as string);
-    lecteur.readAsDataURL(fichier);
+    this.photo.set(await compresserImage(fichier));
   }
 
   retirerPhoto(): void {

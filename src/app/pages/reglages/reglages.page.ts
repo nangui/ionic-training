@@ -14,8 +14,11 @@ import {
   IonToggle,
   IonToolbar,
 } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { contrast, informationCircle, notifications, wifi } from 'ionicons/icons';
+import { contrast, informationCircle, notifications, refresh, wifi } from 'ionicons/icons';
+
+import { SignalementService } from '../../core/services/signalement.service';
 
 import { PreferenceTheme, ThemeService } from '../../core/services/theme.service';
 import { version } from '../../../../package.json';
@@ -43,6 +46,11 @@ import { version } from '../../../../package.json';
 })
 export class ReglagesPage {
   private readonly themeService = inject(ThemeService);
+  private readonly signalementService = inject(SignalementService);
+  private readonly alertController = inject(AlertController);
+  private readonly toastController = inject(ToastController);
+
+  readonly reinitialisationEnCours = signal(false);
 
   // Reglages statiques : l'etat vit en memoire, rien n'est encore persiste.
   readonly notificationsActives = signal(true);
@@ -57,7 +65,46 @@ export class ReglagesPage {
   readonly version = version;
 
   constructor() {
-    addIcons({ notifications, wifi, contrast, informationCircle });
+    addIcons({ notifications, wifi, contrast, informationCircle, refresh });
+  }
+
+  /** Restaure le jeu de donnees initial du participant, apres confirmation. */
+  async reinitialiser(): Promise<void> {
+    const alerte = await this.alertController.create({
+      header: 'Restaurer le jeu initial ?',
+      message:
+        'Vos signalements seront remplacés par le jeu de départ. Cette action est irréversible.',
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Restaurer', role: 'destructive', handler: () => void this.lancerReinitialisation() },
+      ],
+    });
+    await alerte.present();
+  }
+
+  private async lancerReinitialisation(): Promise<void> {
+    this.reinitialisationEnCours.set(true);
+    try {
+      await this.signalementService.reinitialiser();
+      await this.annoncer('Jeu de données restauré.', 'success');
+    } catch (erreur) {
+      await this.annoncer(
+        erreur instanceof Error ? erreur.message : 'La restauration a échoué.',
+        'danger',
+      );
+    } finally {
+      this.reinitialisationEnCours.set(false);
+    }
+  }
+
+  private async annoncer(message: string, couleur: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      position: 'bottom',
+      color: couleur,
+    });
+    await toast.present();
   }
 
   changerTheme(preference: string | undefined): void {
