@@ -110,6 +110,49 @@ trois cas sur six (texte de 13 px = petit texte). Le texte est ajusté de 3 à
 n'existe pas. Dans une application de démonstration, un réglage qui ment se
 remarque.
 
+### La carte : Leaflet plutôt que MapLibre GL
+
+Les deux sont libres et sérieux. Comparaison faite pour **ce** projet :
+
+| | Leaflet 1.9 | MapLibre GL |
+| --- | --- | --- |
+| Rendu | Tuiles raster, DOM/canvas | Tuiles vectorielles, WebGL |
+| Poids transféré | **41 ko** (mesuré, chunk différé) | ~200 ko |
+| Fond de carte sans clé | OpenStreetMap directement | OpenFreeMap, ou une clé |
+| Avantage décisif | Poids, robustesse sur bas de gamme | Des milliers de points, 3D, rotation |
+
+À quelques centaines de signalements, l'avantage GPU de MapLibre ne se voit
+pas ; son poids, si. L'utilisateur est dehors avec une connexion instable :
+c'est le poids qui compte. **MapLibre redeviendrait le bon choix** au-delà de
+quelques milliers de marqueurs, ou si une vue 3D était demandée.
+
+Décisions qui accompagnent ce choix :
+
+- **`@defer`** : Leaflet et sa feuille de style ne sont pas téléchargés tant
+  que l'utilisateur n'ouvre pas la carte. Le bundle initial est inchangé —
+  194,04 ko avant, 194,04 ko après.
+- **`preferCanvas: true`** : les marqueurs sont dessinés dans un seul canvas au
+  lieu d'un élément SVG chacun. Coût nul en dessous de quelques centaines de
+  points, gain net au-delà.
+- **Pas de surcouche Angular** (`ngx-leaflet` et consorts) : une dépendance de
+  moins à suivre, et l'API impérative de Leaflet se prête mal à
+  l'encapsulation.
+- **`ViewEncapsulation.None`** : la feuille de Leaflet cible des éléments qu'il
+  crée lui-même, hors de portée des styles encapsulés. La déclarer dans le
+  composant plutôt que globalement la garde dans le morceau différé.
+- **L'import ESM a été essayé puis écarté** : `leaflet/dist/leaflet-src.esm.js`
+  économise 1,3 ko transférés, au prix d'un alias `paths` dans `tsconfig` qui
+  casserait si Leaflet réorganise son `dist`. `allowedCommonJsDependencies` est
+  le mécanisme documenté, et le chunk ne se charge qu'une fois.
+- **Budget `anyComponentStyle` relevé à 16/24 ko** : `leaflet.css` pèse 11,6 ko
+  et vit dans un composant *par conception*. C'est un seuil déplacé pour une
+  feuille tierce, pas pour excuser notre propre CSS.
+
+Attention : la [politique d'usage des tuiles
+OSM](https://operations.osmfoundation.org/policies/tiles/) exige l'attribution
+(elle est affichée) et interdit un usage massif en production. Pour une vraie
+mise en production, il faudrait un fournisseur de tuiles dédié.
+
 ---
 
 ## Défauts livrés, puis corrigés
@@ -199,5 +242,8 @@ test — il donne confiance.
   tests à doublures.
 - **La compression photo n'a aucun test** : jsdom n'a pas de canvas, le code y
   emprunte systématiquement le chemin de repli.
+- **Le rendu des marqueurs de la carte n'est pas couvert**, pour la même
+  raison. Installer le paquet `canvas` ferait entrer une dépendance native
+  dans le projet pour un gain limité.
 - **Aucun test ne touche la vraie API.** Le contrat HTTP est verrouillé contre
   des réponses que nous écrivons nous-mêmes.

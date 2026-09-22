@@ -25,13 +25,21 @@ import {
   IonTitle,
   IonToolbar,
   InfiniteScrollCustomEvent,
+  NavController,
   RefresherCustomEvent,
   ScrollDetail,
   ToastController,
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, alertCircle, checkmarkCircle, cloudOffline } from 'ionicons/icons';
+import {
+  add,
+  alertCircle,
+  checkmarkCircle,
+  cloudOffline,
+  listOutline,
+  mapOutline,
+} from 'ionicons/icons';
 
 import {
   CategorieSignalement,
@@ -53,6 +61,7 @@ import {
   BrouillonSignalement,
   FormulaireSignalementComponent,
 } from '../../shared/components/formulaire-signalement/formulaire-signalement.component';
+import { CarteSignalementsComponent } from '../../shared/components/carte-signalements/carte-signalements.component';
 import { SignalementCardComponent } from '../../shared/components/signalement-card/signalement-card.component';
 
 /** Amplitude de defilement au-dela de laquelle le bouton flottant s'efface. */
@@ -97,6 +106,7 @@ function normaliser(texte: string): string {
     IonModal,
     SignalementCardComponent,
     FormulaireSignalementComponent,
+    CarteSignalementsComponent,
     BarreRechercheComponent,
     FiltresSignalementsComponent,
     BanniereHorsLigneComponent,
@@ -110,6 +120,7 @@ export class SignalementsPage implements ViewWillEnter {
   private readonly fileEnvoi = inject(FileEnvoiService);
   private readonly cache = inject(CacheSignalementsService);
   private readonly alertController = inject(AlertController);
+  private readonly navController = inject(NavController);
 
   /** Etat de la liste. */
   readonly signalements = signal<Signalement[]>([]);
@@ -151,6 +162,9 @@ export class SignalementsPage implements ViewWillEnter {
   readonly fabVisible = signal(true);
 
   readonly modalOuvert = signal(false);
+
+  /** Liste ou carte. Le jeu de donnees affiche est le meme dans les deux. */
+  readonly modeCarte = signal(false);
 
   readonly squelettes = Array.from({ length: NOMBRE_SQUELETTES });
 
@@ -218,7 +232,7 @@ export class SignalementsPage implements ViewWillEnter {
   );
 
   constructor() {
-    addIcons({ add, alertCircle, checkmarkCircle, cloudOffline });
+    addIcons({ add, alertCircle, checkmarkCircle, cloudOffline, listOutline, mapOutline });
     inject(DestroyRef).onDestroy(() => {
       this.detruit = true;
       clearTimeout(this.minuteurLenteur);
@@ -464,6 +478,15 @@ export class SignalementsPage implements ViewWillEnter {
     this.recherche.set('');
     this.categorieFiltree.set(undefined);
     this.statutFiltre.set(undefined);
+  }
+
+  basculerMode(): void {
+    this.modeCarte.update((carte) => !carte);
+  }
+
+  /** Un marqueur touche ouvre le detail, comme une carte de la liste. */
+  async ouvrirDepuisCarte(signalement: Signalement): Promise<void> {
+    await this.navController.navigateForward(this.lienDetail(signalement));
   }
 
   ouvrirCreation(): void {

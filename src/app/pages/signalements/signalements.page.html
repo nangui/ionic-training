@@ -10,6 +10,20 @@
           Effacer
         </ion-button>
       }
+
+      <ion-button
+        class="action-secondaire"
+        fill="clear"
+        [attr.aria-pressed]="modeCarte()"
+        (click)="basculerMode()"
+      >
+        <ion-icon
+          slot="start"
+          aria-hidden="true"
+          [name]="modeCarte() ? 'list-outline' : 'map-outline'"
+        ></ion-icon>
+        {{ modeCarte() ? 'Liste' : 'Carte' }}
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 
@@ -97,7 +111,26 @@
       </ul>
     }
 
-    @if (erreurBloquante()) {
+    @if (modeCarte()) {
+      <!-- @defer : Leaflet et sa feuille de style ne sont pas telecharges
+           tant que l'utilisateur n'ouvre pas la carte. -->
+      @defer (on immediate) {
+        <app-carte-signalements
+          class="carte-plein"
+          [signalements]="signalementsAffiches()"
+          (ouvrir)="ouvrirDepuisCarte($event)"
+        />
+      } @placeholder {
+        <div class="carte-plein carte-plein--attente" role="status">Chargement de la carte…</div>
+      }
+
+      @if (!enLigne()) {
+        <p class="cache" role="status">
+          Hors ligne : le fond de carte ne peut pas être chargé, seuls les points sont
+          positionnés.
+        </p>
+      }
+    } @else if (erreurBloquante()) {
       <!-- Echec avec un ecran vide : on explique et on propose la reprise,
            plutot que de laisser une liste vide qui ressemble a « aucun
            signalement ». -->

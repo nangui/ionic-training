@@ -22,6 +22,7 @@ Dernière mise à jour : 2026-09-21 — régénérer avec `npm ls --depth=0` apr
 | `@ionic/angular` | 9.0.4 |
 | `@ionic/angular-toolkit` | 13.0.0 |
 | `ionicons` | 8.1.0 |
+| `leaflet` | 1.9.4 |
 | `rxjs` | 7.8.2 |
 | `typescript` | 6.0.3 |
 | `tslib` | 2.8.1 |

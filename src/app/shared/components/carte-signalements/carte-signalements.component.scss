@@ -1,0 +1,43 @@
+// La feuille de Leaflet cible des elements qu'il cree lui-meme : elle ne
+// peut pas etre encapsulee. Importee ici plutot que dans global.scss, elle
+// reste dans le morceau differe et n'est pas telechargee tant que la carte
+// n'est pas ouverte.
+@import 'leaflet/dist/leaflet.css';
+
+.carte-zone {
+  height: 100%;
+  min-height: 320px;
+}
+
+.carte-zone__toile {
+  height: 100%;
+  border-radius: var(--app-radius-card);
+  overflow: hidden;
+}
+
+// L'attribution reste lisible dans les deux themes.
+.leaflet-container {
+  background: var(--app-color-background);
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  background: var(--app-color-surface);
+  color: var(--app-color-text-muted);
+  font-size: 0.6875rem;
+}
+
+.leaflet-control-attribution a {
+  color: var(--app-color-primary);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--app-color-surface);
+  color: var(--app-color-text);
+}
+
+.leaflet-popup-content {
+  font-size: var(--app-font-meta);
+  line-height: 1.5;
+}

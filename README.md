@@ -147,6 +147,16 @@ donc volontairement prudente :
 Le jour où l'API acceptera une clé d'idempotence, le second cas pourra devenir
 un réessai automatique.
 
+## Carte
+
+Un bouton dans l'en-tête bascule entre la liste et la carte. Les deux vues
+affichent **le même jeu filtré** : recherche et filtres s'appliquent aux deux.
+
+Leaflet avec les tuiles OpenStreetMap, chargé en `@defer` — ni la
+bibliothèque ni sa feuille de style ne sont téléchargées tant que la carte
+n'est pas ouverte. Le raisonnement complet du choix est dans
+[`DECISIONS.md`](DECISIONS.md).
+
 ## API
 
 Documentée par OpenAPI : [`/openapi.json`](https://setal-api-formation-production.up.railway.app/openapi.json)
