@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 
 import { SignalementCreation } from '../models/signalement.model';
-import { FileEnvoiService, TAILLE_MAX_FILE } from './file-envoi.service';
+import { FileEnvoiService, POIDS_MAX_FILE, TAILLE_MAX_FILE } from './file-envoi.service';
 import { PreferencesService } from './preferences.service';
 import { ReseauService } from './reseau.service';
 import { ErreurApi, SignalementService } from './signalement.service';
@@ -137,20 +137,62 @@ describe('FileEnvoiService', () => {
     expect(service.nombreEnAttente()).toBe(0);
   });
 
-  it('marque en echec sans reessayer quand le serveur refuse', async () => {
+  it('marque en echec sans jamais reessayer quand le serveur refuse', async () => {
     const service = creer({ enLigne: false });
     await service.pret;
     await service.soumettre(BROUILLON);
 
     reponse = () => Promise.reject(new ErreurApi('Données invalides.', 422));
     enLigne.set(true);
-    await vider();
-    await vider();
+    // On laisse tourner largement : la version precedente enchainait 38
+    // envois en 60 ms, parce que l'effet dependait d'un signal que la
+    // synchronisation ecrivait elle-meme.
+    for (let i = 0; i < 12; i += 1) {
+      await new Promise((resoudre) => setTimeout(resoudre, 5));
+    }
 
+    expect(envois.length).toBe(1);
     expect(service.nombreEnAttente()).toBe(1);
     expect(service.enAttente()[0].etat).toBe('echec');
     expect(service.enAttente()[0].motifEchec).toBe('Données invalides.');
     expect(service.aDesEchecs()).toBe(true);
+  });
+
+  it('ne reprend pas une entree en echec lors d une synchronisation suivante', async () => {
+    const service = creer({ enLigne: false });
+    await service.pret;
+    await service.soumettre(BROUILLON);
+    reponse = () => Promise.reject(new ErreurApi('Données invalides.', 422));
+    enLigne.set(true);
+    await vider();
+    await vider();
+    expect(envois.length).toBe(1);
+
+    // Une nouvelle occasion de synchroniser ne doit pas la reprendre :
+    // le serveur a repondu, il a peut-etre enregistre.
+    reponse = () => Promise.resolve({ id: 1 });
+    await service.synchroniser();
+    await vider();
+
+    expect(envois.length).toBe(1);
+    expect(service.enAttente()[0].etat).toBe('echec');
+  });
+
+  it('reprend l entree seulement quand l utilisateur le demande', async () => {
+    const service = creer({ enLigne: false });
+    await service.pret;
+    await service.soumettre(BROUILLON);
+    reponse = () => Promise.reject(new ErreurApi('Données invalides.', 422));
+    enLigne.set(true);
+    await vider();
+    await vider();
+
+    reponse = () => Promise.resolve({ id: 1 });
+    await service.reessayer(service.enAttente()[0].id);
+    await vider();
+
+    expect(envois.length).toBe(2);
+    expect(service.nombreEnAttente()).toBe(0);
   });
 
   it('garde l entree en attente quand le reseau retombe pendant la synchro', async () => {
@@ -166,6 +208,24 @@ describe('FileEnvoiService', () => {
     expect(service.enAttente()[0].etat).toBe('en_attente');
   });
 
+  it('ne tourne pas en boucle quand le reseau echoue de facon repetee', async () => {
+    const service = creer({ enLigne: false });
+    await service.pret;
+    await service.soumettre(BROUILLON);
+
+    // Statut 0 : l'entree reste « en attente », donc elle reste eligible.
+    // Sans `untracked` dans l'effet, chaque tentative ecrirait `tentatives`,
+    // ce qui relancerait l'effet, qui retenterait, sans fin.
+    reponse = () => Promise.reject(new ErreurApi('Le serveur est injoignable.', 0));
+    enLigne.set(true);
+    for (let i = 0; i < 12; i += 1) {
+      await new Promise((resoudre) => setTimeout(resoudre, 5));
+    }
+
+    expect(envois.length).toBe(1);
+    expect(service.enAttente()[0].etat).toBe('en_attente');
+  });
+
   it('permet d abandonner une entree', async () => {
     const service = creer({ enLigne: false });
     await service.pret;
@@ -176,7 +236,7 @@ describe('FileEnvoiService', () => {
     expect(service.nombreEnAttente()).toBe(0);
   });
 
-  it('plafonne la file pour ne pas saturer le stockage de l appareil', async () => {
+  it('plafonne la file en nombre d entrees', async () => {
     const service = creer({ enLigne: false });
     await service.pret;
     for (let i = 0; i < TAILLE_MAX_FILE; i += 1) {
@@ -184,6 +244,17 @@ describe('FileEnvoiService', () => {
     }
 
     await expect(service.soumettre(BROUILLON)).rejects.toThrow(/pleine/);
+  });
+
+  it('plafonne aussi en octets : une seule photo suffit a saturer', async () => {
+    const service = creer({ enLigne: false });
+    await service.pret;
+    // Une photo volumineuse, comme en produirait un appareil sans
+    // compression : le plafond en nombre d'entrees serait inoperant.
+    const enorme = { ...BROUILLON, photo: 'data:image/jpeg;base64,' + 'A'.repeat(POIDS_MAX_FILE) };
+
+    await expect(service.soumettre(enorme)).rejects.toThrow(/pleine/);
+    expect(service.nombreEnAttente()).toBe(0);
   });
 
   it('represente une entree en attente avec un identifiant negatif', async () => {

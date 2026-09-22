@@ -51,6 +51,12 @@ export class SignalementCardComponent {
   /** Mention affichee a la place de la date, ex. « En attente d'envoi ». */
   readonly mention = input<string | undefined>(undefined);
 
+  /**
+   * Masque l'etiquette de statut. Un signalement pas encore envoye n'a
+   * aucun statut serveur : en afficher un serait inventer une information.
+   */
+  readonly afficherStatut = input(true);
+
   readonly categorie = computed(
     () => LIBELLES_CATEGORIE[this.signalement().categorie],
   );

@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import {
+  AlertController,
   IonButton,
   IonButtons,
   IonContent,
@@ -108,6 +109,7 @@ export class SignalementsPage implements ViewWillEnter {
   private readonly toastController = inject(ToastController);
   private readonly fileEnvoi = inject(FileEnvoiService);
   private readonly cache = inject(CacheSignalementsService);
+  private readonly alertController = inject(AlertController);
 
   /** Etat de la liste. */
   readonly signalements = signal<Signalement[]>([]);
@@ -248,6 +250,11 @@ export class SignalementsPage implements ViewWillEnter {
    * n'apparaissait qu'apres avoir touche un filtre.
    */
   ionViewWillEnter(): void {
+    // Volontairement synchrone. Attendre `fileEnvoi.pret` supprimerait un
+    // scintillement de l'ordre de la microtache au demarrage a froid, au
+    // prix d'un cycle de vue asynchrone - un couplage qui s'est revele
+    // fragile des la premiere modification. Le jeu n'en vaut pas la
+    // chandelle.
     void this.charger();
   }
 
@@ -327,6 +334,11 @@ export class SignalementsPage implements ViewWillEnter {
       if (this.estCourante(lecture)) {
         this.signalements.update((actuels) => [...actuels, ...page.data]);
         this.total.set(page.total);
+        // Le cache suit ce qui est reellement affiche, sinon il resterait
+        // bloque sur la premiere page.
+        if (!this.filtresActifs()) {
+          await this.cache.enregistrer(this.signalements(), page.total);
+        }
       }
     } catch {
       // Silencieux : la liste deja affichee reste utilisable, et le
@@ -361,9 +373,26 @@ export class SignalementsPage implements ViewWillEnter {
     await this.charger();
   }
 
-  /** Abandonne une entree apres confirmation implicite de l'utilisateur. */
+  /**
+   * Abandonne une entree, apres confirmation.
+   *
+   * Irreversible : ce signalement n'existe nulle part ailleurs que sur cet
+   * appareil. La meme precaution que pour une suppression serveur.
+   */
   async abandonnerEnvoi(entree: SignalementEnAttente): Promise<void> {
-    await this.fileEnvoi.abandonner(entree.id);
+    const alerte = await this.alertController.create({
+      header: 'Abandonner ce signalement ?',
+      message: `« ${entree.brouillon.titre} » n'a jamais été envoyé. Il sera définitivement perdu.`,
+      buttons: [
+        { text: 'Conserver', role: 'cancel' },
+        {
+          text: 'Abandonner',
+          role: 'destructive',
+          handler: () => void this.fileEnvoi.abandonner(entree.id),
+        },
+      ],
+    });
+    await alerte.present();
   }
 
   private criteresCourants(): CriteresRecherche {

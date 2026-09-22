@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 
 import {
   SignalementEnAttente,
@@ -20,6 +20,15 @@ const CLE_FILE = 'app.fileEnvoi';
  * UserDefaults, qui ne sont pas faits pour des dizaines de mega-octets.
  */
 export const TAILLE_MAX_FILE = 20;
+
+/**
+ * Plafond reel de la file, en octets.
+ *
+ * C'est la taille qui compte, pas le nombre : SharedPreferences est charge
+ * en memoire au demarrage de l'application, et une seule photo non
+ * compressee suffirait a rendre un plafond exprime en entrees inoperant.
+ */
+export const POIDS_MAX_FILE = 5 * 1024 * 1024;
 
 /** Ce qu'il est advenu d'une soumission. */
 export type ResultatSoumission = 'envoye' | 'en_file';
@@ -76,12 +85,19 @@ export class FileEnvoiService {
   constructor() {
     this.pret = this.restaurer();
 
-    // Le retour du reseau declenche la synchronisation. Un effet plutot
-    // qu'un abonnement : `enLigne` est deja un signal.
+    // Le retour du reseau declenche la synchronisation.
+    //
+    // La file est lue dans `untracked` : sans ca, l'effet dependrait d'un
+    // signal que `synchroniser()` ecrit lui-meme, et chaque ecriture le
+    // relancerait. Mesure avant correction : 38 envois en 60 ms pour une
+    // seule entree.
     effect(() => {
-      if (this.reseau.enLigne() && this.entrees().length > 0) {
-        void this.synchroniser();
-      }
+      const enLigne = this.reseau.enLigne();
+      untracked(() => {
+        if (enLigne && this.entrees().some((e) => e.etat === 'en_attente')) {
+          void this.synchroniser();
+        }
+      });
     });
   }
 
@@ -121,7 +137,12 @@ export class FileEnvoiService {
     this.synchronisationEnCours.set(true);
 
     try {
-      for (const entree of [...this.entrees()]) {
+      // Seules les entrees en attente sont tentees. Une entree en echec a
+      // recu une reponse du serveur : il a peut-etre enregistre, la
+      // reessayer d'office creerait un doublon. C'est a l'utilisateur de
+      // decider, via « Reessayer ».
+      const aEnvoyer = this.entrees().filter((e) => e.etat === 'en_attente');
+      for (const entree of aEnvoyer) {
         const envoye = await this.tenter(entree);
         // Un echec reseau arrete la boucle : inutile d'insister sur les
         // suivantes, et l'ordre de creation est preserve.
@@ -205,22 +226,32 @@ export class FileEnvoiService {
   }
 
   private async empiler(brouillon: SignalementCreation): Promise<void> {
-    if (this.entrees().length >= TAILLE_MAX_FILE) {
+    const nouvelle: SignalementEnAttente = {
+      id: identifiantLocal(),
+      brouillon,
+      dateCreation: new Date().toISOString(),
+      etat: 'en_attente',
+      tentatives: 0,
+    };
+
+    const candidate = [...this.entrees(), nouvelle];
+    if (candidate.length > TAILLE_MAX_FILE || this.poids(candidate) > POIDS_MAX_FILE) {
       throw new Error(
-        `La file d'envoi est pleine (${TAILLE_MAX_FILE} signalements). Connectez-vous pour la vider avant d'en créer un nouveau.`,
+        "La réserve hors-ligne est pleine. Connectez-vous pour envoyer ce qui attend avant d'en créer un nouveau.",
       );
     }
-    this.entrees.update((liste) => [
-      ...liste,
-      {
-        id: identifiantLocal(),
-        brouillon,
-        dateCreation: new Date().toISOString(),
-        etat: 'en_attente',
-        tentatives: 0,
-      },
-    ]);
+
+    this.entrees.set(candidate);
     await this.persister();
+  }
+
+  /** Taille serialisee de la file, photos comprises. */
+  private poids(entrees: SignalementEnAttente[]): number {
+    try {
+      return JSON.stringify(entrees).length;
+    } catch {
+      return 0;
+    }
   }
 
   private async retirer(id: string): Promise<void> {

@@ -74,6 +74,7 @@
           <li>
             <app-signalement-card
               [signalement]="carte.signalement"
+              [afficherStatut]="false"
               [mention]="
                 carte.entree.etat === 'echec'
                   ? 'Envoi impossible'

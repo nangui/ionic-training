@@ -17,7 +17,9 @@
 
   <span class="corps">
     <span class="corps__haut">
-      <app-statut-chip [statut]="signalement().statut" />
+      @if (afficherStatut()) {
+        <app-statut-chip [statut]="signalement().statut" />
+      }
       <span class="corps__categorie">{{ categorie() }}</span>
     </span>
 
@@ -40,7 +42,9 @@
 
   <span class="corps">
     <span class="corps__haut">
-      <app-statut-chip [statut]="signalement().statut" />
+      @if (afficherStatut()) {
+        <app-statut-chip [statut]="signalement().statut" />
+      }
       <span class="corps__categorie">{{ categorie() }}</span>
     </span>
 

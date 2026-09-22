@@ -370,7 +370,11 @@ describe('SignalementsPage', () => {
       // Une lecture qui n'aboutit pas dans la fenetre observee.
       service.lister = () => new Promise(() => undefined);
       TestBed.configureTestingModule({
-        providers: [provideRouter([]), { provide: SignalementService, useValue: service }],
+        providers: [
+          provideRouter([]),
+          { provide: SignalementService, useValue: service },
+          { provide: PLUGIN_STOCKAGE, useValue: stockageFactice() },
+        ],
       });
       fixture = TestBed.createComponent(SignalementsPage);
       component = fixture.componentInstance;

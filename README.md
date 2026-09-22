@@ -160,7 +160,9 @@ Documentée par OpenAPI : [`/openapi.json`](https://setal-api-formation-producti
 | `DELETE /signalements/{id}` | Suppression |
 | `POST /reset` | Restaure le jeu initial du participant |
 
-Les versions exactes de toutes les dépendances sont dans [`STACK.md`](STACK.md).
+Les versions exactes de toutes les dépendances sont dans [`STACK.md`](STACK.md),
+et les choix de conception — avec les défauts livrés puis corrigés, et ce qu'ils
+ont appris — dans [`DECISIONS.md`](DECISIONS.md).
 
 ## Tests
 
