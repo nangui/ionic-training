@@ -12,8 +12,9 @@ import { IonIcon, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { camera, close, locate, refresh } from 'ionicons/icons';
 
-import { compresserImage } from '../../../core/models/image';
 import { formaterCoordonnees } from '../../../core/models/signalement.format';
+import { ErreurPhoto, PhotoService } from '../../../core/services/photo.service';
+import { PositionService } from '../../../core/services/position.service';
 import {
   CATEGORIES_SIGNALEMENT,
   LIBELLES_CATEGORIE,
@@ -35,6 +36,8 @@ export type BrouillonSignalement = SignalementCreation;
 })
 export class FormulaireSignalementComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly photoService = inject(PhotoService);
+  private readonly positionService = inject(PositionService);
 
   /** Valeurs de depart : renseignees en edition, vides en creation. */
   readonly valeursInitiales = input<BrouillonSignalement | undefined>(undefined);
@@ -58,6 +61,10 @@ export class FormulaireSignalementComponent {
 
   readonly photo = signal<string | undefined>(undefined);
   readonly etatPosition = signal<EtatPosition>('vide');
+
+  /** Message affiche quand la position ou la photo a echoue. */
+  readonly messagePosition = signal('');
+  readonly messagePhoto = signal('');
   readonly envoiEnCours = signal(false);
 
   /**
@@ -114,13 +121,22 @@ export class FormulaireSignalementComponent {
     return '';
   }
 
-  /** Lit le fichier choisi, le compresse, et le stocke en data URI base64. */
-  async choisirPhoto(evenement: Event): Promise<void> {
-    const fichier = (evenement.target as HTMLInputElement).files?.[0];
-    if (!fichier) {
-      return;
+  /**
+   * Appareil photo ou galerie, au choix de l'utilisateur.
+   * Un refus n'empeche jamais l'envoi : la photo est facultative.
+   */
+  async choisirPhoto(): Promise<void> {
+    this.messagePhoto.set('');
+    try {
+      this.photo.set(await this.photoService.capturer());
+    } catch (erreur) {
+      if (erreur instanceof ErreurPhoto && erreur.motif === 'annulation') {
+        return;
+      }
+      this.messagePhoto.set(
+        erreur instanceof Error ? erreur.message : "La photo n'a pas pu être ajoutée.",
+      );
     }
-    this.photo.set(await compresserImage(fichier));
   }
 
   retirerPhoto(): void {
@@ -128,29 +144,25 @@ export class FormulaireSignalementComponent {
   }
 
   /**
-   * Geolocalisation de l'appareil. Un refus n'est jamais bloquant : la saisie
-   * manuelle des coordonnees reste possible.
+   * Geolocalisation de l'appareil. Un refus n'est jamais bloquant : la
+   * saisie sans position reste possible.
    */
-  localiser(): void {
-    if (!navigator.geolocation) {
-      this.etatPosition.set('refuse');
-      return;
-    }
+  async localiser(): Promise<void> {
     this.etatPosition.set('chargement');
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        this.formulaire.patchValue({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        this.coordonnees.set(
-          formaterCoordonnees(position.coords.latitude, position.coords.longitude),
-        );
-        this.etatPosition.set('rempli');
-      },
-      () => this.etatPosition.set('refuse'),
-      { timeout: 10_000 },
-    );
+    this.messagePosition.set('');
+    try {
+      const { latitude, longitude } = await this.positionService.obtenir();
+      this.formulaire.patchValue({ latitude, longitude });
+      this.coordonnees.set(formaterCoordonnees(latitude, longitude));
+      this.etatPosition.set('rempli');
+    } catch (erreur) {
+      this.messagePosition.set(
+        erreur instanceof Error
+          ? erreur.message
+          : "La position n'a pas pu être déterminée.",
+      );
+      this.etatPosition.set('refuse');
+    }
   }
 
   soumettre(): void {

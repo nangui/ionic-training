@@ -38,4 +38,15 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Position : la precision fine sert a situer le signalement a la rue
+         pres. L'application reste utilisable si elle est refusee. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Photo : la camera est facultative, d'ou le uses-feature non requis,
+         sinon le Play Store masquerait l'application aux appareils sans
+         appareil photo. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>

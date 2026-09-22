@@ -66,5 +66,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Pour joindre une photo du problème que vous signalez.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pour choisir une photo existante du problème que vous signalez.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Pour enregistrer la photo prise avec l'application.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pour situer automatiquement le problème que vous signalez. Vous pouvez aussi envoyer sans position.</string>
 </dict>
 </plist>

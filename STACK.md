@@ -37,6 +37,8 @@ Dernière mise à jour : 2026-09-21 — régénérer avec `npm ls --depth=0` apr
 | `@capacitor/app` | 8.1.1 |
 | `@capacitor/haptics` | 8.0.2 |
 | `@capacitor/keyboard` | 8.0.5 |
+| `@capacitor/camera` | 8.2.4 |
+| `@capacitor/geolocation` | 8.2.2 |
 | `@capacitor/network` | 8.0.1 |
 | `@capacitor/status-bar` | 8.0.3 |
 

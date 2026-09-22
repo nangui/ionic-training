@@ -66,10 +66,10 @@
       <div class="photo">
         <img class="photo__apercu" [src]="apercu" alt="Aperçu de la photo jointe" />
         <div class="photo__actions">
-          <label class="bouton bouton--secondaire" for="photo">
+          <button class="bouton bouton--secondaire" type="button" (click)="choisirPhoto()">
             <ion-icon name="camera" aria-hidden="true"></ion-icon>
             Remplacer
-          </label>
+          </button>
           <button class="bouton bouton--secondaire" type="button" (click)="retirerPhoto()">
             <ion-icon name="close" aria-hidden="true"></ion-icon>
             Retirer
@@ -77,21 +77,19 @@
         </div>
       </div>
     } @else {
-      <label class="bouton bouton--secondaire bouton--pleine-largeur" for="photo">
+      <button
+        class="bouton bouton--secondaire bouton--pleine-largeur"
+        type="button"
+        (click)="choisirPhoto()"
+      >
         <ion-icon name="camera" aria-hidden="true"></ion-icon>
         Ajouter une photo
-      </label>
+      </button>
       <p class="champ__aide">Facultatif. Un envoi sans photo reste utile.</p>
     }
-    <input
-      class="champ__fichier"
-      id="photo"
-      type="file"
-      accept="image/*"
-      capture="environment"
-      aria-labelledby="photo-libelle"
-      (change)="choisirPhoto($event)"
-    />
+    @if (messagePhoto()) {
+      <p class="champ__erreur" role="alert">{{ messagePhoto() }}</p>
+    }
   </div>
 
   <!-- Position -->
@@ -115,9 +113,8 @@
           </button>
         }
         @case ('refuse') {
-          <p class="position__etat position__etat--refus">
-            Accès à la position refusé. Vous pouvez envoyer le signalement sans
-            position, ou réessayer après avoir autorisé la localisation.
+          <p class="position__etat position__etat--refus" role="alert">
+            {{ messagePosition() }}
           </p>
           <button class="bouton bouton--secondaire" type="button" (click)="localiser()">
             <ion-icon name="locate" aria-hidden="true"></ion-icon>
