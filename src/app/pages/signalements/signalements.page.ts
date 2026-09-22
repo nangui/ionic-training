@@ -27,6 +27,7 @@ import {
   RefresherCustomEvent,
   ScrollDetail,
   ToastController,
+  ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { add, alertCircle, checkmarkCircle, cloudOffline } from 'ionicons/icons';
@@ -97,7 +98,7 @@ function normaliser(texte: string): string {
     CarteSqueletteComponent,
   ],
 })
-export class SignalementsPage {
+export class SignalementsPage implements ViewWillEnter {
   private readonly signalementService = inject(SignalementService);
   private readonly reseauService = inject(ReseauService);
   private readonly toastController = inject(ToastController);
@@ -136,6 +137,7 @@ export class SignalementsPage {
   private readonly formulaire = viewChild(FormulaireSignalementComponent);
 
   private dernierDefilement = 0;
+  private premierPassage = true;
   /**
    * Numero de la derniere lecture lancee.
    *
@@ -186,15 +188,32 @@ export class SignalementsPage {
     });
 
     // Toute variation de critere relance une lecture : c'est le serveur qui
-    // filtre, pas la vue.
+    // filtre, pas la vue. Le premier passage est laisse a ionViewWillEnter,
+    // sinon la page ferait deux requetes a son ouverture.
     effect(() => {
       const criteres = {
         q: this.recherche() || undefined,
         categorie: this.categorieFiltree(),
         statut: this.statutFiltre(),
       };
+      if (this.premierPassage) {
+        this.premierPassage = false;
+        return;
+      }
       void this.charger(criteres);
     });
+  }
+
+  /**
+   * Relit la liste a chaque entree dans la vue.
+   *
+   * Indispensable avec IonicRouteStrategy : Ionic garde les pages montees
+   * pour animer le retour, donc le constructeur et ngOnInit ne rejouent
+   * pas. Sans ce crochet, un signalement cree depuis l'onglet « Nouveau »
+   * n'apparaissait qu'apres avoir touche un filtre.
+   */
+  ionViewWillEnter(): void {
+    void this.charger();
   }
 
   /**

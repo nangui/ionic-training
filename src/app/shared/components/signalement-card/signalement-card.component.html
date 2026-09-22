@@ -1,4 +1,11 @@
-<a class="carte" [routerLink]="lien()" [attr.aria-label]="resume()">
+<!-- routerDirection="forward" : sans lui, Ionic ne sait pas dans quel sens
+     animer et la transition vers le detail n'a pas lieu. -->
+<a
+  class="carte"
+  [routerLink]="lien()"
+  routerDirection="forward"
+  [attr.aria-label]="resume()"
+>
   <span class="vignette" aria-hidden="true">
     @if (signalement().photo; as photo) {
       <img class="vignette__image" [src]="photo" alt="" />

@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, ToastController } from '@ionic/angular';
+
+import {
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  NavController,
+  ToastController,
+} from '@ionic/angular';
 
 import { SignalementService } from '../../core/services/signalement.service';
 import {
@@ -16,7 +23,9 @@ import {
   imports: [IonHeader, IonToolbar, IonTitle, IonContent, FormulaireSignalementComponent],
 })
 export class NouveauPage {
-  private readonly router = inject(Router);
+  // NavController plutot que Router : lui seul anime la transition. Avec
+  // Router, le retour a la liste se fait par un saut sec.
+  private readonly navController = inject(NavController);
   private readonly toastController = inject(ToastController);
   private readonly signalementService = inject(SignalementService);
 
@@ -33,7 +42,7 @@ export class NouveauPage {
         color: 'success',
       });
       await toast.present();
-      await this.router.navigate(['/tabs/signalements']);
+      await this.navController.navigateBack('/tabs/signalements');
     } catch (erreur) {
       // On reste sur le formulaire, saisie intacte.
       this.formulaire()?.terminerEnvoi();
@@ -51,6 +60,6 @@ export class NouveauPage {
   }
 
   async annuler(): Promise<void> {
-    await this.router.navigate(['/tabs/signalements']);
+    await this.navController.navigateBack('/tabs/signalements');
   }
 }

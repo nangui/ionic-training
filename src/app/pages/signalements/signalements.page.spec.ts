@@ -76,6 +76,10 @@ describe('SignalementsPage', () => {
     fixture = TestBed.createComponent(SignalementsPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    // Ce qu'Ionic fait a chaque entree dans la vue, et que TestBed ne fait
+    // pas : c'est la que part la premiere lecture.
+    component.ionViewWillEnter();
+    fixture.detectChanges();
   };
 
   const attendreChargement = async (): Promise<void> => {
@@ -99,6 +103,28 @@ describe('SignalementsPage', () => {
     expect(component.signalements().length).toBe(2);
     expect(component.total()).toBe(2);
     expect(fixture.nativeElement.querySelectorAll('app-signalement-card').length).toBe(2);
+  });
+
+  it('ne lit qu une fois a la premiere ouverture', async () => {
+    creer();
+    await attendreChargement();
+
+    // Le constructeur pose l'effet, ionViewWillEnter declenche la lecture :
+    // sans garde, les deux tireraient et la page ferait deux requetes.
+    expect(service.criteres.length).toBe(1);
+  });
+
+  it('relit a chaque retour sur la vue', async () => {
+    creer();
+    await attendreChargement();
+
+    // C'est le scenario du bug : un signalement cree depuis l'onglet
+    // « Nouveau » n'apparaissait qu'apres avoir touche un filtre, parce
+    // qu'Ionic garde la page montee et ne rejoue pas ngOnInit.
+    component.ionViewWillEnter();
+    await attendreChargement();
+
+    expect(service.criteres.length).toBe(2);
   });
 
   it('delegue la recherche au serveur plutot que de filtrer la page recue', async () => {
@@ -205,6 +231,7 @@ describe('SignalementsPage', () => {
     fixture = TestBed.createComponent(SignalementsPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    component.ionViewWillEnter();
 
     component.surRecherche('nouveau terme');
     fixture.detectChanges();
@@ -247,6 +274,7 @@ describe('SignalementsPage', () => {
       fixture = TestBed.createComponent(SignalementsPage);
       component = fixture.componentInstance;
       fixture.detectChanges();
+      component.ionViewWillEnter();
 
       expect(component.connexionLente()).toBe(false);
 

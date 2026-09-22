@@ -20,9 +20,9 @@ import {
   IonSpinner,
   IonTitle,
   IonToolbar,
+  NavController,
   ToastController,
 } from '@ionic/angular';
-import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import {
   alertCircle,
@@ -91,7 +91,7 @@ export class SignalementDetailPage {
   private readonly signalementService = inject(SignalementService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
-  private readonly router = inject(Router);
+  private readonly navController = inject(NavController);
 
   /** Parametre `:id` de la route, lie automatiquement par le routeur. */
   readonly id = input.required<string>();
@@ -285,7 +285,7 @@ export class SignalementDetailPage {
     this.actionEnCours.set(true);
     try {
       await this.signalementService.supprimer(signalement.id);
-      await this.router.navigate(['/tabs/signalements']);
+      await this.navController.navigateBack('/tabs/signalements');
       await this.annoncer('Signalement supprimé.', 'success');
     } catch (erreur) {
       await this.annoncer(this.message(erreur, 'La suppression a échoué.'), 'danger');

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonIcon } from '@ionic/angular';
+import { IonIcon, IonRouterLinkWithHref } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { bulb, construct, ellipsisHorizontal, trash, water } from 'ionicons/icons';
 
@@ -33,7 +33,10 @@ const ICONE_CATEGORIE: Record<CategorieSignalement, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'signalement-card.component.html',
   styleUrls: ['signalement-card.component.scss'],
-  imports: [RouterLink, IonIcon, StatutChipComponent],
+  // IonRouterLinkWithHref et non IonRouterLink : le premier vise
+  // « a[routerLink] », le second « :not(a)[routerLink] ». La carte est une
+  // ancre, donc sans ce choix routerDirection resterait un attribut inerte.
+  imports: [RouterLink, IonRouterLinkWithHref, IonIcon, StatutChipComponent],
 })
 export class SignalementCardComponent {
   readonly signalement = input.required<Signalement>();
