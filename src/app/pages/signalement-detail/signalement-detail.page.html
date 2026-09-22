@@ -1,4 +1,4 @@
-<ion-header class="en-tete en-tete--retour">
+<ion-header class="en-tete">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/signalements" text="Retour"></ion-back-button>
@@ -117,7 +117,7 @@
 
 <ion-modal [isOpen]="editionOuverte()" (ionModalDidDismiss)="fermerEdition()">
   <ng-template>
-    <ion-header class="en-tete">
+    <ion-header class="en-tete en-tete--titre-gauche">
       <ion-toolbar>
         <ion-title>Modifier</ion-title>
         <ion-buttons slot="end">
