@@ -16,8 +16,10 @@ import {
 } from '@ionic/angular';
 import { AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { contrast, informationCircle, notifications, refresh, wifi } from 'ionicons/icons';
+import { contrast, informationCircle, image, refresh, wifi } from 'ionicons/icons';
 
+import { PreferencesService } from '../../core/services/preferences.service';
+import { ReseauService } from '../../core/services/reseau.service';
 import { SignalementService } from '../../core/services/signalement.service';
 
 import { PreferenceTheme, ThemeService } from '../../core/services/theme.service';
@@ -47,15 +49,19 @@ import { version } from '../../../../package.json';
 export class ReglagesPage {
   private readonly themeService = inject(ThemeService);
   private readonly signalementService = inject(SignalementService);
+  private readonly preferences = inject(PreferencesService);
+  private readonly reseau = inject(ReseauService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
 
   readonly reinitialisationEnCours = signal(false);
 
-  // Reglages statiques : l'etat vit en memoire, rien n'est encore persiste.
-  readonly notificationsActives = signal(true);
-  readonly envoiWifiSeulement = signal(false);
-  readonly compressionPhoto = signal(true);
+  // Reglages reellement appliques, et persistes d'une session a l'autre.
+  readonly envoiWifiSeulement = this.preferences.envoiWifiSeulement;
+  readonly compressionPhoto = this.preferences.compressionPhoto;
+
+  /** Sert a dire a l'utilisateur ce que le reglage Wi-Fi implique ici. */
+  readonly typeConnexion = this.reseau.typeConnexion;
 
   /** Le theme, lui, est bien persiste. */
   readonly preferenceTheme = this.themeService.preference;
@@ -65,7 +71,7 @@ export class ReglagesPage {
   readonly version = version;
 
   constructor() {
-    addIcons({ notifications, wifi, contrast, informationCircle, refresh });
+    addIcons({ wifi, image, contrast, informationCircle, refresh });
   }
 
   /** Restaure le jeu de donnees initial du participant, apres confirmation. */

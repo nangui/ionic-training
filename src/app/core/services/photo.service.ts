@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource, ImageOptions } from '@capacitor/camera';
 
 import { LARGEUR_MAX_PHOTO, QUALITE_PHOTO, compresserImage } from '../models/image';
+import { PreferencesService } from './preferences.service';
 
 /** Pourquoi une capture n'a pas abouti. */
 export type EchecPhoto = 'refus' | 'annulation' | 'erreur';
@@ -57,10 +58,13 @@ export const PLATEFORME = new InjectionToken<() => string>('plateforme', {
 export class PhotoService {
   private readonly camera = inject(PLUGIN_CAMERA);
   private readonly plateforme = inject(PLATEFORME);
+  private readonly preferences = inject(PreferencesService);
 
   /** Renvoie une photo en data URI, ou leve une ErreurPhoto. */
   async capturer(): Promise<string> {
     await this.verifierPermissions();
+
+    const compresser = this.preferences.compressionPhoto();
 
     let resultat: { dataUrl?: string };
     try {
@@ -69,8 +73,10 @@ export class PhotoService {
         source: CameraSource.Prompt,
         // Redimensionnement natif : bien moins couteux qu'un passage par
         // canvas, et il evite de charger l'image pleine taille en memoire.
-        width: LARGEUR_MAX_PHOTO,
-        quality: Math.round(QUALITE_PHOTO * 100),
+        // Desactivable par le reglage « Compresser les photos ».
+        ...(compresser
+          ? { width: LARGEUR_MAX_PHOTO, quality: Math.round(QUALITE_PHOTO * 100) }
+          : { quality: 100 }),
         correctOrientation: true,
         promptLabelHeader: 'Photo du signalement',
         promptLabelPhoto: 'Choisir dans la galerie',
@@ -93,7 +99,7 @@ export class PhotoService {
     // Sur le web, le plugin ne respecte ni width ni quality pour un fichier
     // choisi : on repasse par la compression canvas. Sur mobile c'est deja
     // fait nativement, une seconde passe ne ferait que degrader l'image.
-    if (this.plateforme() === 'web') {
+    if (compresser && this.plateforme() === 'web') {
       return compresserImage(await enFichier(resultat.dataUrl));
     }
     return resultat.dataUrl;

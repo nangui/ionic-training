@@ -8,40 +8,39 @@
   <div class="contenu">
     <ion-list class="bloc">
       <ion-list-header>
-        <ion-label>Notifications</ion-label>
-      </ion-list-header>
-
-      <ion-item>
-        <ion-icon slot="start" name="notifications" aria-hidden="true"></ion-icon>
-        <ion-toggle [checked]="notificationsActives()" (ionChange)="notificationsActives.set($any($event).detail.checked)">
-          <ion-label>
-            Suivi de mes signalements
-            <ion-note>Être prévenu quand le statut change</ion-note>
-          </ion-label>
-        </ion-toggle>
-      </ion-item>
-    </ion-list>
-
-    <ion-list class="bloc">
-      <ion-list-header>
         <ion-label>Envoi</ion-label>
       </ion-list-header>
 
       <ion-item>
         <ion-icon slot="start" name="wifi" aria-hidden="true"></ion-icon>
-        <ion-toggle [checked]="envoiWifiSeulement()" (ionChange)="envoiWifiSeulement.set($any($event).detail.checked)">
+        <ion-toggle
+          [checked]="envoiWifiSeulement()"
+          (ionChange)="envoiWifiSeulement.set($any($event).detail.checked)"
+        >
           <ion-label>
             Envoyer en Wi-Fi uniquement
-            <ion-note>Les signalements attendent une connexion Wi-Fi</ion-note>
+            <ion-note>
+              {{
+                envoiWifiSeulement()
+                  ? (typeConnexion() === 'wifi'
+                      ? 'Connexion Wi-Fi : les envois passent'
+                      : 'Connexion ' + typeConnexion() + ' : les envois sont refusés')
+                  : 'Les envois passent sur toutes les connexions'
+              }}
+            </ion-note>
           </ion-label>
         </ion-toggle>
       </ion-item>
 
-      <ion-item>
-        <ion-toggle [checked]="compressionPhoto()" (ionChange)="compressionPhoto.set($any($event).detail.checked)">
+      <ion-item lines="none">
+        <ion-icon slot="start" name="image" aria-hidden="true"></ion-icon>
+        <ion-toggle
+          [checked]="compressionPhoto()"
+          (ionChange)="compressionPhoto.set($any($event).detail.checked)"
+        >
           <ion-label>
             Compresser les photos
-            <ion-note>Réduit la taille avant l'envoi</ion-note>
+            <ion-note>Largeur plafonnée à 1280 px avant l'envoi</ion-note>
           </ion-label>
         </ion-toggle>
       </ion-item>

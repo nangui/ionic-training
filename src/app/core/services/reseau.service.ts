@@ -2,11 +2,16 @@ import { DestroyRef, InjectionToken, Injectable, inject, signal } from '@angular
 import { Network } from '@capacitor/network';
 
 /** La part du plugin reseau dont le service a besoin. */
+export interface StatutReseau {
+  connected: boolean;
+  connectionType?: string;
+}
+
 export interface PluginReseau {
-  getStatus(): Promise<{ connected: boolean }>;
+  getStatus(): Promise<StatutReseau>;
   addListener(
     evenement: 'networkStatusChange',
-    fonction: (statut: { connected: boolean }) => void,
+    fonction: (statut: StatutReseau) => void,
   ): Promise<{ remove: () => Promise<void> }>;
 }
 
@@ -53,22 +58,29 @@ export class ReseauService {
   private readonly plugin = inject(PLUGIN_RESEAU);
 
   private readonly enLigneInterne = signal(navigator.onLine);
+  private readonly typeInterne = signal<string>('unknown');
 
   readonly enLigne = this.enLigneInterne.asReadonly();
+
+  /** `wifi`, `cellular`, `none`, `unknown`... tel que le plugin le rapporte. */
+  readonly typeConnexion = this.typeInterne.asReadonly();
 
   constructor() {
     const destroyRef = inject(DestroyRef);
 
-    void this.plugin
-      .getStatus()
-      .then((statut) => this.enLigneInterne.set(statut.connected));
+    void this.plugin.getStatus().then((statut) => this.appliquer(statut));
 
     const ecouteur = this.plugin.addListener('networkStatusChange', (statut) =>
-      this.enLigneInterne.set(statut.connected),
+      this.appliquer(statut),
     );
 
     destroyRef.onDestroy(() => {
       void ecouteur.then((handle) => handle.remove());
     });
+  }
+
+  private appliquer(statut: StatutReseau): void {
+    this.enLigneInterne.set(statut.connected);
+    this.typeInterne.set(statut.connectionType ?? 'unknown');
   }
 }
