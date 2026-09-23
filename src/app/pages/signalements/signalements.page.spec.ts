@@ -58,7 +58,7 @@ const page = (titre: string): PageSignalements => ({
   selector: 'app-carte-signalements',
   template: '',
 })
-class CarteFactice {
+class CarteFacticeComponent {
   readonly points = input.required<PointCarte[]>();
   readonly ouvrir = output<unknown>();
 }
@@ -71,7 +71,7 @@ class CarteFactice {
 const sansCarteReelle = async (): Promise<void> => {
   TestBed.overrideComponent(SignalementsPage, {
     remove: { imports: [CarteSignalementsComponent] },
-    add: { imports: [CarteFactice] },
+    add: { imports: [CarteFacticeComponent] },
   });
   await TestBed.compileComponents();
 };

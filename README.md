@@ -73,6 +73,10 @@ ionic cap run android -l --external
 | `npm run verify:defer` | Vérifie que la carte reste dans un morceau différé |
 | `npm run verify` | Tout l'enchaînement : lint, types, tests, report |
 
+> Lancez `npm run verify` plutôt que les commandes une à une. Enchaînées à la
+> main derrière un `|`, leurs codes de sortie sont masqués par celui du dernier
+> maillon — c'est ainsi qu'un commit est parti ici avec une erreur de lint.
+
 `npm run typecheck` n'est pas redondant avec `npm run build` : le build ne
 vérifie que les fichiers atteints depuis `main.ts`. Un nouveau service jamais
 importé peut contenir n'importe quoi et passer le build sans un mot.
