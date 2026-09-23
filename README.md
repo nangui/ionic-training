@@ -70,10 +70,19 @@ ionic cap run android -l --external
 | `npm test` | Tests unitaires (Vitest) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | **Types de tout `src/`**, y compris les fichiers pas encore importés |
+| `npm run verify:defer` | Vérifie que la carte reste dans un morceau différé |
+| `npm run verify` | Tout l'enchaînement : lint, types, tests, report |
 
 `npm run typecheck` n'est pas redondant avec `npm run build` : le build ne
 vérifie que les fichiers atteints depuis `main.ts`. Un nouveau service jamais
 importé peut contenir n'importe quoi et passer le build sans un mot.
+
+`npm run verify:defer` couvre un angle mort du même genre. Le `@defer` de la
+carte est annulé par la moindre référence statique au composant — un import de
+commodité depuis son fichier suffit. Leaflet retombe alors dans le morceau de
+la page, **sans erreur, sans avertissement, sans test rouge**. C'est arrivé une
+fois : la page est passée de 8 à 49 ko transférés, et le seul signal était une
+ligne manquante dans la sortie de build.
 
 ## Architecture
 

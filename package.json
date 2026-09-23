@@ -11,6 +11,8 @@
     "build:ios": "ng build && npx cap sync ios",
     "build:mobile": "ng build && npx cap sync",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "verify:defer": "node scripts/verifier-report.mjs",
+    "verify": "npm run lint && npm run typecheck && npm test -- --watch=false && npm run verify:defer",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"

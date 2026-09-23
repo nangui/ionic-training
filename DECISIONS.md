@@ -153,8 +153,12 @@ L'importer depuis le fichier du composant crée une référence statique qui
 **annule le `@defer`** : Leaflet retombe dans le morceau de la page, sans
 erreur ni avertissement. Mesuré quand c'est arrivé : la page est passée de 8 à
 49 ko transférés, et le morceau différé a simplement disparu de la sortie de
-build. Aucun test ne garde ce point — seule la lecture des tailles de chunk le
-révèle.
+build.
+
+`npm run verify:defer` garde désormais ce point : il lit les tailles de morceaux
+de la sortie de build, exige la présence du morceau de la carte, et refuse que
+la page de liste dépasse 20 ko transférés. Vérifié en reproduisant l'erreur —
+les deux contrôles se déclenchent et le script sort en échec.
 
 Attention : la [politique d'usage des tuiles
 OSM](https://operations.osmfoundation.org/policies/tiles/) exige l'attribution
