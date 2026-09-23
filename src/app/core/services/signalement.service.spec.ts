@@ -43,6 +43,9 @@ describe('SignalementService', () => {
     http.verify();
   });
 
+  /** Laisse tourner la file des microtaches entre deux reponses. */
+  const vider = (): Promise<void> => new Promise((resoudre) => setTimeout(resoudre, 0));
+
   it('identifie le participant sur chaque appel a l API', async () => {
     const promesse = service.lister();
     const requete = http.expectOne((r) => r.url === BASE);
@@ -122,6 +125,43 @@ describe('SignalementService', () => {
 
     requete.flush(null);
     await promesse;
+  });
+
+  it('parcourt toutes les pages et renvoie le total du serveur', async () => {
+    const promesse = service.listerTout();
+
+    // La page suivante n'est demandee qu'apres resolution de la precedente :
+    // il faut laisser tourner la file des microtaches entre deux reponses.
+    const premiere = http.expectOne((r) => r.params.get('offset') === '0');
+    expect(premiere.request.params.get('limit')).toBe('100');
+    premiere.flush({ total: 150, limit: 100, offset: 0, data: Array(100).fill(SIGNALEMENT) });
+    await vider();
+
+    const seconde = http.expectOne((r) => r.params.get('offset') === '100');
+    seconde.flush({ total: 150, limit: 100, offset: 100, data: Array(50).fill(SIGNALEMENT) });
+    await vider();
+
+    const resultat = await promesse;
+    expect(resultat.signalements.length).toBe(150);
+    // Le total permet a l'appelant de dire qu'il a tronque, plutot que de
+    // le taire.
+    expect(resultat.total).toBe(150);
+  });
+
+  it('interrompt la pagination quand l appelant ne veut plus des pages', async () => {
+    let continuer = true;
+    const promesse = service.listerTout({}, () => continuer);
+
+    const premiere = http.expectOne((r) => r.params.get('offset') === '0');
+    continuer = false;
+    premiere.flush({ total: 150, limit: 100, offset: 0, data: Array(100).fill(SIGNALEMENT) });
+    await vider();
+
+    const resultat = await promesse;
+
+    expect(resultat.signalements.length).toBe(100);
+    // Aucune seconde requete : l'ecran a change entre-temps.
+    http.expectNone((r) => r.params.get('offset') === '100');
   });
 
   it('traduit un 404 en message lisible', async () => {

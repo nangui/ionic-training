@@ -11,6 +11,15 @@ import {
   SignalementModification,
 } from '../models/signalement.model';
 
+/**
+ * Plafond de `listerTout`, en nombre de signalements.
+ *
+ * Evite qu'un jeu de donnees inattendu ne fasse boucler l'application. Le
+ * total reel est renvoye a cote, pour que l'appelant puisse signaler la
+ * troncature plutot que de la taire.
+ */
+export const PLAFOND_LISTE_COMPLETE = 500;
+
 /** Erreur metier remontee aux ecrans, deja traduite en francais. */
 export class ErreurApi extends Error {
   constructor(
@@ -76,24 +85,35 @@ export class SignalementService {
    * Toutes les pages, pour une vue qui ne peut pas paginer.
    *
    * La carte en a besoin : un point manquant n'y est pas percu, contrairement
-   * a une liste tronquee ou l'on sent qu'on cesse de defiler. Le plafond
-   * evite qu'un jeu de donnees inattendu ne fasse boucler l'application.
+   * a une liste tronquee ou l'on sent qu'on cesse de defiler.
+   *
+   * Renvoie aussi le total annonce par le serveur : c'est le seul moyen pour
+   * l'appelant de savoir que le plafond a tronque, et de le dire. Un plafond
+   * silencieux reproduirait, plus haut, le defaut qu'on cherche a eviter.
+   *
+   * `continuer` permet d'interrompre la pagination quand l'ecran a change.
    */
   async listerTout(
     criteres: CriteresRecherche = {},
-    plafond = 500,
-  ): Promise<Signalement[]> {
+    continuer: () => boolean = () => true,
+    plafond = PLAFOND_LISTE_COMPLETE,
+  ): Promise<{ signalements: Signalement[]; total: number }> {
     const taille = 100; // maximum accepte par l'API
-    const tout: Signalement[] = [];
+    const signalements: Signalement[] = [];
+    let total = 0;
 
     for (let offset = 0; offset < plafond; offset += taille) {
+      if (!continuer()) {
+        break;
+      }
       const page = await this.lister({ ...criteres, limit: taille, offset });
-      tout.push(...page.data);
-      if (tout.length >= page.total || page.data.length === 0) {
+      signalements.push(...page.data);
+      total = page.total;
+      if (signalements.length >= page.total || page.data.length === 0) {
         break;
       }
     }
-    return tout;
+    return { signalements, total };
   }
 
   /** Un signalement par son identifiant. */

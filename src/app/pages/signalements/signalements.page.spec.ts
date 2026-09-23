@@ -1,5 +1,9 @@
+import { Component, input, output } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+
+import { CarteSignalementsComponent } from '../../shared/components/carte-signalements/carte-signalements.component';
+import { PointCarte } from '../../shared/components/carte-signalements/carte-signalements.model';
 
 import {
   CriteresRecherche,
@@ -44,6 +48,35 @@ const page = (titre: string): PageSignalements => ({
 });
 
 /**
+ * Doublure de la carte.
+ *
+ * Le composant reel dessine ses marqueurs dans un canvas, que jsdom
+ * n'implemente pas. On teste ici la logique de l'ecran - ce qu'il charge et
+ * ce qu'il transmet - pas le rendu Leaflet, couvert a part.
+ */
+@Component({
+  selector: 'app-carte-signalements',
+  template: '',
+})
+class CarteFactice {
+  readonly points = input.required<PointCarte[]>();
+  readonly ouvrir = output<unknown>();
+}
+
+/**
+ * Remplace la carte reelle dans l'ecran teste.
+ * `compileComponents` est requis : surcharger les imports invalide les
+ * metadonnees du composant, qu'il faut recompiler avant de l'instancier.
+ */
+const sansCarteReelle = async (): Promise<void> => {
+  TestBed.overrideComponent(SignalementsPage, {
+    remove: { imports: [CarteSignalementsComponent] },
+    add: { imports: [CarteFactice] },
+  });
+  await TestBed.compileComponents();
+};
+
+/**
  * Stockage en memoire : sans lui, les tests partagent le stockage reel et
  * un cache ecrit par un test ferait passer le suivant pour la mauvaise
  * raison.
@@ -80,6 +113,10 @@ class ServiceFactice {
   async creer(): Promise<Signalement> {
     this.creations += 1;
     return SIGNALEMENTS[0];
+  }
+
+  async listerTout(): Promise<{ signalements: Signalement[]; total: number }> {
+    return { signalements: SIGNALEMENTS, total: SIGNALEMENTS.length };
   }
 }
 
@@ -361,6 +398,65 @@ describe('SignalementsPage', () => {
 
     // Le service factice renvoie total = 2 et deux elements.
     expect(component.toutCharge()).toBe(true);
+  });
+
+  it('ignore une reponse de carte rendue obsolete par une lecture plus recente', async () => {
+    let appel = 0;
+    service = new ServiceFactice();
+    service.listerTout = () => {
+      appel += 1;
+      const titre = appel === 1 ? 'ANCIEN' : 'RECENT';
+      const donnees = { signalements: [{ ...SIGNALEMENTS[0], titre }], total: 1 };
+      // La premiere lecture, correspondant au filtre abandonne, est la plus
+      // lente. Sans garde de sequence elle ecraserait la seconde - le meme
+      // defaut que sur la liste, reintroduit dans le chargeur de carte.
+      return appel === 1
+        ? new Promise((r) => setTimeout(() => r(donnees), 40))
+        : Promise.resolve(donnees);
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: service },
+        { provide: PLUGIN_STOCKAGE, useValue: stockageFactice() },
+      ],
+    });
+    await sansCarteReelle();
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.basculerMode();
+    fixture.detectChanges();
+    component.surRecherche('autre terme');
+    fixture.detectChanges();
+    await new Promise((resoudre) => setTimeout(resoudre, 120));
+
+    expect(component.pointsCarte()[0].signalement.titre).toBe('RECENT');
+  });
+
+  it('signale une carte plafonnee plutot que de la tronquer en silence', async () => {
+    service = new ServiceFactice();
+    // Le serveur en annonce plus que ce que le plafond ramene.
+    service.listerTout = () =>
+      Promise.resolve({ signalements: [SIGNALEMENTS[0]], total: 900 });
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: SignalementService, useValue: service },
+        { provide: PLUGIN_STOCKAGE, useValue: stockageFactice() },
+      ],
+    });
+    await sansCarteReelle();
+    fixture = TestBed.createComponent(SignalementsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.basculerMode();
+    await attendreChargement();
+
+    expect(component.carteTronquee()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('plafonnée');
   });
 
   it('previent au-dela de dix secondes que la connexion semble lente', async () => {

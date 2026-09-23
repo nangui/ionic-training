@@ -14,6 +14,9 @@
  */
 import { execFileSync } from 'node:child_process';
 
+/** npx s'appelle npx.cmd sur Windows, et execFileSync ne le devine pas. */
+const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
 /** Morceau attendu, et taille maximale de la page qui le diffère. */
 const MORCEAU_ATTENDU = 'carte-signalements-component';
 const PAGE_SURVEILLEE = 'signalements-page';
@@ -21,7 +24,7 @@ const PAGE_MAX_KO = 20;
 
 function construire() {
   try {
-    return execFileSync('npx', ['ng', 'build'], {
+    return execFileSync(NPX, ['ng', 'build'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -52,6 +55,21 @@ function morceaux(sortie) {
 
 const sortie = construire();
 const liste = morceaux(sortie);
+
+// Sans ce controle, une sortie devenue illisible - couleurs ANSI, changement
+// de format d'Angular - donnerait une liste vide, donc un « morceau absent »
+// avec un diagnostic faux. Un garde-fou doit savoir dire qu'il n'a pas pu
+// verifier.
+if (liste.length < 3) {
+  console.error(
+    "\nVérification du report impossible : la sortie de build n'a pas pu être lue\n" +
+      `  (${liste.length} morceau(x) reconnu(s), ce qui est anormalement bas).\n` +
+      "  Le format de sortie d'Angular a probablement changé. Ce n'est pas un échec\n" +
+      '  du report : adaptez la lecture dans scripts/verifier-report.mjs.\n',
+  );
+  process.exit(2);
+}
+
 const echecs = [];
 
 const carte = liste.find((m) => m.nom === MORCEAU_ATTENDU);
@@ -69,7 +87,8 @@ const page = liste.find((m) => m.nom === PAGE_SURVEILLEE);
 if (page && page.ko > PAGE_MAX_KO) {
   echecs.push(
     `Le morceau « ${PAGE_SURVEILLEE} » pèse ${page.ko} ko transférés, au-delà des ${PAGE_MAX_KO} ko attendus.\n` +
-      '  Une bibliothèque lourde y est probablement retombée.',
+      "  Soit une bibliothèque lourde y est retombée, soit l'écran a grossi pour une\n" +
+      `  bonne raison — dans ce cas, relevez PAGE_MAX_KO en connaissance de cause.`,
   );
 }
 

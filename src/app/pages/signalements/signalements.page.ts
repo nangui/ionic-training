@@ -48,6 +48,7 @@ import {
   StatutSignalement,
 } from '../../core/models/signalement.model';
 import { SignalementEnAttente } from '../../core/models/file-envoi.model';
+import { Sequenceur } from '../../core/models/sequenceur';
 import { formaterDateCourte } from '../../core/models/signalement.format';
 import { CacheSignalementsService } from '../../core/services/cache-signalements.service';
 import { FileEnvoiService } from '../../core/services/file-envoi.service';
@@ -177,21 +178,28 @@ export class SignalementsPage implements ViewWillEnter {
   readonly pointsCarte = signal<PointCarte[]>([]);
   readonly chargementCarte = signal(false);
 
+  /** Total annonce par le serveur, pour dire quand la carte est incomplete. */
+  readonly totalCarte = signal(0);
+
+  /** Vrai quand le plafond de securite a tronque les points affiches. */
+  readonly carteTronquee = computed(() => {
+    const affiches = this.pointsCarte().filter((p) => p.ouvrable).length;
+    return this.totalCarte() > affiches;
+  });
+
   readonly squelettes = Array.from({ length: NOMBRE_SQUELETTES });
 
   private readonly formulaire = viewChild(FormulaireSignalementComponent);
 
   private dernierDefilement = 0;
   private premierPassage = true;
+
   /**
-   * Numero de la derniere lecture lancee.
-   *
-   * Sans lui, une reponse lente correspondant a un filtre abandonne peut
-   * arriver apres une reponse rapide et ecraser la liste courante : on
-   * afficherait le resultat d'une recherche que l'utilisateur a deja
-   * remplacee.
+   * Une sequence par chargeur : la liste et la carte lisent separement, et
+   * chacune doit ignorer ses propres reponses obsoletes. Voir Sequenceur.
    */
-  private lectureCourante = 0;
+  private readonly sequenceListe = new Sequenceur();
+  private readonly sequenceCarte = new Sequenceur();
   private minuteurLenteur?: ReturnType<typeof setTimeout>;
   private detruit = false;
 
@@ -246,6 +254,8 @@ export class SignalementsPage implements ViewWillEnter {
     addIcons({ add, alertCircle, checkmarkCircle, cloudOffline, listOutline, mapOutline });
     inject(DestroyRef).onDestroy(() => {
       this.detruit = true;
+      this.sequenceListe.arreter();
+      this.sequenceCarte.arreter();
       clearTimeout(this.minuteurLenteur);
     });
 
@@ -292,7 +302,7 @@ export class SignalementsPage implements ViewWillEnter {
    */
   async charger(criteres?: CriteresRecherche): Promise<void> {
     const criteresEffectifs = criteres ?? this.criteresCourants();
-    const lecture = ++this.lectureCourante;
+    const lecture = this.sequenceListe.demarrer();
 
     this.chargement.set(true);
     this.connexionLente.set(false);
@@ -313,7 +323,7 @@ export class SignalementsPage implements ViewWillEnter {
         limit: TAILLE_PAGE,
         offset: 0,
       });
-      if (this.estCourante(lecture)) {
+      if (this.sequenceListe.estCourant(lecture)) {
         this.signalements.set(page.data);
         this.total.set(page.total);
         this.cache.marquerServi(null);
@@ -324,7 +334,7 @@ export class SignalementsPage implements ViewWillEnter {
         }
       }
     } catch (erreur) {
-      if (this.estCourante(lecture)) {
+      if (this.sequenceListe.estCourant(lecture)) {
         const servi = await this.servirDepuisCache();
         this.erreur.set(!servi);
         // La liste deja affichee reste a l'ecran : un echec de
@@ -334,7 +344,7 @@ export class SignalementsPage implements ViewWillEnter {
         }
       }
     } finally {
-      if (this.estCourante(lecture)) {
+      if (this.sequenceListe.estCourant(lecture)) {
         clearTimeout(this.minuteurLenteur);
         this.connexionLente.set(false);
         this.chargement.set(false);
@@ -347,7 +357,7 @@ export class SignalementsPage implements ViewWillEnter {
    * avant d'atteindre le bas de la liste.
    */
   async chargerSuite(evenement: InfiniteScrollCustomEvent): Promise<void> {
-    const lecture = this.lectureCourante;
+    const lecture = this.sequenceListe.demarrer();
     try {
       const page = await this.signalementService.lister({
         ...this.criteresCourants(),
@@ -356,7 +366,7 @@ export class SignalementsPage implements ViewWillEnter {
       });
       // Un changement de filtre pendant la requete annule cette suite : elle
       // appartient a une liste qui n'est plus affichee.
-      if (this.estCourante(lecture)) {
+      if (this.sequenceListe.estCourant(lecture)) {
         this.signalements.update((actuels) => [...actuels, ...page.data]);
         this.total.set(page.total);
         // Le cache suit ce qui est reellement affiche, sinon il resterait
@@ -426,11 +436,6 @@ export class SignalementsPage implements ViewWillEnter {
       categorie: this.categorieFiltree(),
       statut: this.statutFiltre(),
     };
-  }
-
-  /** Faux si une lecture plus recente a ete lancee entre-temps. */
-  private estCourante(lecture: number): boolean {
-    return !this.detruit && lecture === this.lectureCourante;
   }
 
   /** Toast d'echec avec une action de reprise, quand du contenu est visible. */
@@ -516,12 +521,20 @@ export class SignalementsPage implements ViewWillEnter {
     criteres: CriteresRecherche,
     enAttente: readonly SignalementEnAttente[],
   ): Promise<void> {
+    const lecture = this.sequenceCarte.demarrer();
     this.chargementCarte.set(true);
+
     try {
-      const tous = await this.signalementService.listerTout(criteres);
-      if (this.detruit) {
+      const { signalements, total } = await this.signalementService.listerTout(
+        criteres,
+        // Arrete la pagination des que l'ecran change : inutile de continuer
+        // a parcourir les pages d'une carte qu'on n'affiche plus.
+        () => this.sequenceCarte.estCourant(lecture) && this.modeCarte(),
+      );
+      if (!this.sequenceCarte.estCourant(lecture)) {
         return;
       }
+      this.totalCarte.set(total);
       // Les signalements pas encore envoyes sont sur la carte comme dans la
       // liste : deux vues du meme jeu doivent montrer le meme jeu.
       this.pointsCarte.set([
@@ -529,14 +542,15 @@ export class SignalementsPage implements ViewWillEnter {
           signalement: this.fileEnvoi.enSignalement(entree, rang),
           ouvrable: false,
         })),
-        ...tous.map((signalement) => ({ signalement, ouvrable: true })),
+        ...signalements.map((signalement) => ({ signalement, ouvrable: true })),
       ]);
     } catch {
-      if (!this.detruit) {
+      if (this.sequenceCarte.estCourant(lecture)) {
         this.pointsCarte.set([]);
+        this.totalCarte.set(0);
       }
     } finally {
-      if (!this.detruit) {
+      if (this.sequenceCarte.estCourant(lecture)) {
         this.chargementCarte.set(false);
       }
     }

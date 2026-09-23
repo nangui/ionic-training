@@ -243,6 +243,17 @@ Livrés ensemble, trouvés en relecture :
    l'onglet. Le cadrage ne se rejoue plus que si l'ensemble des identifiants
    change.
 
+### La course entre requêtes, réintroduite à côté du correctif
+
+Le chargeur de carte a été écrit sans garde de séquence, alors que le
+chargeur de liste en avait une **quinze lignes plus haut dans le même
+fichier**. Mesuré : la réponse lente l'emportait. Et c'était pire que sur la
+liste, `listerTout()` enchaînant plusieurs requêtes.
+
+**Leçon** : un correctif local ne se propage pas seul. La garde est désormais
+un objet nommé, `Sequenceur`, avec son propre test — pour qu'elle se réutilise
+au lieu de se re-découvrir.
+
 ### La boucle de réessai infinie
 
 **38 requêtes POST en 60 ms** pour une seule entrée en échec. Deux causes

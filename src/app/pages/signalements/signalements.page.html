@@ -135,6 +135,13 @@
 
       @if (chargementCarte()) {
         <p class="total" role="status">Chargement des points…</p>
+      } @else if (carteTronquee()) {
+        <!-- Un plafond tu reproduirait, plus haut, le defaut qu'on corrige :
+             une carte incomplete sans que rien ne le signale. -->
+        <p class="cache" role="status">
+          {{ pointsCarte().length }} points affichés sur {{ totalCarte() }} : la carte est
+          plafonnée. Affinez la recherche ou les filtres pour tout voir.
+        </p>
       } @else if (pointsCarte().length > 0) {
         <p class="total">
           {{ pointsCarte().length }} point{{ pointsCarte().length > 1 ? 's' : '' }} sur la carte
