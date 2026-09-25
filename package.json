@@ -13,7 +13,7 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "verify:defer": "node scripts/verifier-report.mjs",
     "assets:sources": "node scripts/generate-assets.mjs",
-    "assets:android": "npx capacitor-assets generate --android --iconBackgroundColor '#0f766e' --iconBackgroundColorDark '#0f766e' --splashBackgroundColor '#f5f5f1' --splashBackgroundColorDark '#111714'",
+    "assets:android": "npx capacitor-assets generate --android --iconBackgroundColor \"#0f766e\" --iconBackgroundColorDark \"#0f766e\" --splashBackgroundColor \"#f5f5f1\" --splashBackgroundColorDark \"#111714\"",
     "verify": "npm run lint && npm run typecheck && npm test -- --watch=false && npm run verify:defer",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -56,6 +56,7 @@
     "angular-eslint": "22.0.0",
     "eslint": "^10.10.0",
     "jsdom": "^26.0.0",
+    "sharp": "0.32.6",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.61.0",
     "vitest": "~4.0.18"

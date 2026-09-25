@@ -6,7 +6,12 @@
 // Usage : node scripts/generate-assets.mjs
 
 import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+
+// Chemin absolu : le script ecrit au meme endroit d'ou qu'on le lance.
+const DOSSIER = fileURLToPath(new URL('../assets/', import.meta.url));
 
 const COULEURS = {
   clair: { fond: '#f5f5f1', primaire: '#0f766e', contraste: '#ffffff' },
@@ -42,8 +47,8 @@ const splash = ({ fond, primaire, contraste }) => `
 const ecrire = (svg, fichier) =>
   sharp(Buffer.from(svg)).flatten().png().toFile(fichier);
 
-await mkdir('assets', { recursive: true });
-await ecrire(icone(), 'assets/icon.png');
-await ecrire(splash(COULEURS.clair), 'assets/splash.png');
-await ecrire(splash(COULEURS.sombre), 'assets/splash-dark.png');
+await mkdir(DOSSIER, { recursive: true });
+await ecrire(icone(), join(DOSSIER, 'icon.png'));
+await ecrire(splash(COULEURS.clair), join(DOSSIER, 'splash.png'));
+await ecrire(splash(COULEURS.sombre), join(DOSSIER, 'splash-dark.png'));
 console.log('assets/icon.png, assets/splash.png, assets/splash-dark.png generes');
